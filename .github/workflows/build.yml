@@ -1,0 +1,149 @@
+name: macOS atomic<shared_ptr> build check
+
+# Builds goatpig/BitcoinArmory rc2_fixes (c32e065f) and the proposed fix
+# (6ed34945) on Ubuntu (GCC/libstdc++) and macOS arm64 (clang/libc++).
+# Expected: Ubuntu builds both; macOS fails on c32e065f with the
+# std::atomic<std::shared_ptr> static_assert, and builds 6ed34945.
+
+on:
+  push:
+    branches: [ci/mac-atomic-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.label }} (expect ${{ matrix.expect }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, label: rc2_fixes-c32e065f, ref: c32e065fd473a30401c5e6d08e40271830886f85, expect: pass }
+          - { os: ubuntu-24.04, label: fix-6ed34945,       ref: 6ed34945a9971b139bbf39c598e96fbff5c6bea8, expect: pass }
+          - { os: macos-15,     label: rc2_fixes-c32e065f, ref: c32e065fd473a30401c5e6d08e40271830886f85, expect: fail }
+          - { os: macos-15,     label: fix-6ed34945,       ref: 6ed34945a9971b139bbf39c598e96fbff5c6bea8, expect: pass }
+    env:
+      LIBBTC_COMMIT: 07933995eb5010a016c75fb703a66023116013a3
+      LWS_TAG: v4.5.8
+      LWS_COMMIT: fbb0baf6af9c4324f0f1591734c78b0089b599d4
+    steps:
+      - name: Checkout Armory at ${{ matrix.ref }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          path: BitcoinArmory
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Confirm checked-out commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          got="$(git -C BitcoinArmory rev-parse HEAD)"
+          echo "checked out: ${got}"
+          test "${got}" = "${{ matrix.ref }}"
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            capnproto libcapnp-dev liblmdb-dev cmake
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install autoconf automake libtool pkg-config capnp lmdb cmake
+
+      - name: Toolchain versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          c++ --version | head -1
+          capnp --version
+          cmake --version | head -1
+          echo "cpus: $(getconf _NPROCESSORS_ONLN)"
+
+      - name: Build libbtc (pinned commit)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/libbtc/libbtc
+          cd libbtc
+          git checkout --quiet "${LIBBTC_COMMIT}"
+          test "$(git rev-parse HEAD)" = "${LIBBTC_COMMIT}"
+          sh autogen.sh
+          CFLAGS="-fPIC -g" ./configure --disable-wallet --disable-tools \
+            --disable-net --disable-shared
+          make -j"$(getconf _NPROCESSORS_ONLN)"
+
+      - name: Build libwebsockets (pinned tag, no TLS)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet --branch "${LWS_TAG}" --depth 1 \
+            https://github.com/warmcat/libwebsockets
+          test "$(git -C libwebsockets rev-parse HEAD)" = "${LWS_COMMIT}"
+          cmake -S libwebsockets -B libwebsockets/build \
+            -DLWS_WITH_SSL=OFF -DLWS_WITHOUT_TESTAPPS=ON
+          cmake --build libwebsockets/build -j"$(getconf _NPROCESSORS_ONLN)"
+
+      - name: Configure Armory
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd BitcoinArmory
+          sh autogen.sh
+          mkdir build
+          cd build
+          extra=()
+          if [ "${RUNNER_OS}" = "macOS" ]; then
+            p="$(brew --prefix)"
+            extra=(CPPFLAGS="-I${p}/include" LDFLAGS="-L${p}/lib")
+          fi
+          ../configure \
+            --with-own-libbtc="${GITHUB_WORKSPACE}/libbtc" \
+            --with-own-lws="${GITHUB_WORKSPACE}/libwebsockets/build" \
+            "${extra[@]}"
+
+      - name: Build Armory and check expected outcome (${{ matrix.expect }})
+        shell: bash
+        run: |
+          set -uo pipefail
+          cd BitcoinArmory/build
+          # Actions runs bash with -e: capture make's status without exiting
+          if make -j"$(getconf _NPROCESSORS_ONLN)" > make.log 2>&1; then
+            rc=0
+          else
+            rc=$?
+          fi
+          hits="$(grep -c 'is_trivially_copyable<std::shared_ptr' make.log || true)"
+          echo "---- last 40 lines of make.log ----"
+          tail -n 40 make.log
+          echo "---- first errors ----"
+          grep -m 20 'error:' make.log || echo "(none)"
+          line="${{ matrix.os }} | ${{ matrix.label }} | make rc=${rc} | atomic<shared_ptr> static_assert hits=${hits} | expected=${{ matrix.expect }}"
+          echo "${line}"
+          echo "${line}" >> "${GITHUB_STEP_SUMMARY}"
+          if [ "${{ matrix.expect }}" = "pass" ]; then
+            if [ "${rc}" -eq 0 ] && [ -x cppForSwig/ArmoryDB ]; then
+              echo "OK: built as expected"
+            else
+              echo "::error::expected a successful build"; exit 1
+            fi
+          else
+            if [ "${rc}" -ne 0 ] && [ "${hits}" -gt 0 ]; then
+              echo "OK: failed as expected, on the std::atomic<std::shared_ptr> static_assert"
+            else
+              echo "::error::expected the build to fail on std::atomic<std::shared_ptr>"; exit 1
+            fi
+          fi
