@@ -2,8 +2,8 @@ name: macOS atomic<shared_ptr> build check
 
 # Builds goatpig/BitcoinArmory rc2_fixes (c32e065f) and the proposed fix
 # (6ed34945) on Ubuntu (GCC/libstdc++) and macOS arm64 (clang/libc++).
-# Expected: Ubuntu builds both; macOS fails on c32e065f with the
-# std::atomic<std::shared_ptr> static_assert, and builds 6ed34945.
+# Expected: Ubuntu builds both; macOS rejects std::atomic<std::shared_ptr>
+# on c32e065f (libc++ static_assert or _Atomic error), and builds 6ed34945.
 
 on:
   push:
@@ -126,12 +126,12 @@ jobs:
           else
             rc=$?
           fi
-          hits="$(grep -c 'is_trivially_copyable<std::shared_ptr' make.log || true)"
+          hits="$(grep -cE "is_trivially_copyable<std::(__1::)?shared_ptr|_Atomic cannot be applied to type 'std::(__1::)?shared_ptr" make.log || true)"
           echo "---- last 40 lines of make.log ----"
           tail -n 40 make.log
           echo "---- first errors ----"
           grep -m 20 'error:' make.log || echo "(none)"
-          line="${{ matrix.os }} | ${{ matrix.label }} | make rc=${rc} | atomic<shared_ptr> static_assert hits=${hits} | expected=${{ matrix.expect }}"
+          line="${{ matrix.os }} | ${{ matrix.label }} | make rc=${rc} | atomic<shared_ptr> error hits=${hits} | expected=${{ matrix.expect }}"
           echo "${line}"
           echo "${line}" >> "${GITHUB_STEP_SUMMARY}"
           if [ "${{ matrix.expect }}" = "pass" ]; then
@@ -142,7 +142,7 @@ jobs:
             fi
           else
             if [ "${rc}" -ne 0 ] && [ "${hits}" -gt 0 ]; then
-              echo "OK: failed as expected, on the std::atomic<std::shared_ptr> static_assert"
+              echo "OK: failed as expected, on std::atomic<std::shared_ptr>"
             else
               echo "::error::expected the build to fail on std::atomic<std::shared_ptr>"; exit 1
             fi
