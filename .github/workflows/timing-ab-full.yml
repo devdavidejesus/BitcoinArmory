@@ -1,0 +1,148 @@
+name: Armory A/B timing, full WalletTests suite
+
+# Settles whether PR #794 affects the timing-sensitive WalletTests.
+# The full WalletTests suite runs A/B on the SAME runner, interleaved, with the
+# order alternating each round (A,B then B,A ...):
+#   A = rc2_fixes (5554ef1f) + gtest fix
+#   B = rc2_fixes (5554ef1f) + PR #794 + gtest fix
+# A and B differ exactly by the 12 files of PR #794. Checkouts are pinned by tree hash.
+
+on:
+  push:
+    branches: [ci/timing-ab-full]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LIBBTC_COMMIT: 07933995eb5010a016c75fb703a66023116013a3
+  LWS_TAG: v4.5.8
+  LWS_COMMIT: fbb0baf6af9c4324f0f1591734c78b0089b599d4
+
+jobs:
+  timing-ab-full:
+    name: A/B full WalletTests / ${{ matrix.cc }} (same runner, interleaved)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    env:
+      ROUNDS: "4"
+    steps:
+      - name: Checkout A (rc2_fixes + gtest fix)
+        uses: actions/checkout@v4
+        with:
+          ref: fix-wallettests-clang
+          path: A
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout B (rc2_fixes + PR 794 + gtest fix)
+        uses: actions/checkout@v4
+        with:
+          ref: tests/794-with-wallettests-fix
+          path: B
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Confirm the exact source trees (A and B differ only by PR 794)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C A rev-parse 'HEAD^{tree}')" = 75c80a708e3a173de00bea51ab53484fc789aa34
+          test "$(git -C B rev-parse 'HEAD^{tree}')" = 5cc2891cff4794bf5587fe7816739c5dca4953f8
+          echo "A: $(git -C A rev-parse HEAD) tree 75c80a70 | B: $(git -C B rev-parse HEAD) tree 5cc2891c"
+          lscpu | grep -E 'Model name|^CPU\(s\)' || true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            capnproto libcapnp-dev liblmdb-dev cmake libgtest-dev clang
+
+      - name: Build libbtc and libwebsockets (pinned)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/libbtc/libbtc
+          git -C libbtc checkout --quiet "${LIBBTC_COMMIT}"
+          test "$(git -C libbtc rev-parse HEAD)" = "${LIBBTC_COMMIT}"
+          (cd libbtc && sh autogen.sh && CFLAGS="-fPIC -g" ./configure --disable-wallet \
+            --disable-tools --disable-net --disable-shared && make -j"$(nproc)")
+          git clone --quiet --branch "${LWS_TAG}" --depth 1 https://github.com/warmcat/libwebsockets
+          test "$(git -C libwebsockets rev-parse HEAD)" = "${LWS_COMMIT}"
+          cmake -S libwebsockets -B libwebsockets/build -DLWS_WITH_SSL=OFF -DLWS_WITHOUT_TESTAPPS=ON
+          cmake --build libwebsockets/build -j"$(nproc)"
+
+      - name: Build A and B (same flags, same runner)
+        shell: bash
+        run: |
+          set +e
+          extra=()
+          if [ "${{ matrix.cc }}" = "clang" ]; then extra+=(CC=clang CXX=clang++); fi
+          for v in A B; do
+            (cd "${v}" && sh autogen.sh > /dev/null 2>&1 && mkdir build && cd build \
+              && ../configure --enable-tests \
+                   --with-own-libbtc="${GITHUB_WORKSPACE}/libbtc" \
+                   --with-own-lws="${GITHUB_WORKSPACE}/libwebsockets/build" "${extra[@]}" > configure.log 2>&1 \
+              && { make -k -j"$(nproc)" > make.log 2>&1 || true; })
+            if [ -x "${v}/build/cppForSwig/gtest/WalletTests" ]; then echo "${v}: WalletTests built"; fi
+          done
+          test -x A/build/cppForSwig/gtest/WalletTests && test -x B/build/cppForSwig/gtest/WalletTests
+
+      - name: Run the full WalletTests suite, interleaved, alternating order
+        timeout-minutes: 240
+        shell: bash
+        run: |
+          set +e
+          mkdir -p ab-logs
+          for i in $(seq 1 "${ROUNDS}"); do
+            if [ $((i % 2)) -eq 1 ]; then order="A B"; else order="B A"; fi
+            for v in ${order}; do
+              log="${GITHUB_WORKSPACE}/ab-logs/${v}-${i}.log"
+              (cd "${v}/build/cppForSwig/gtest" && ./WalletTests > "${log}" 2>&1)
+              passed=$(grep -oE '^\[  PASSED  \] [0-9]+ test' "${log}" | grep -oE '[0-9]+')
+              total_ms=$(grep -oE '^\[==========\] [0-9]+ tests? from [0-9]+ test suites? ran\. \([0-9]+ ms total\)' "${log}" | grep -oE '[0-9]+ ms' | grep -oE '[0-9]+')
+              failed=$(grep -E '^\[  FAILED  \] [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \(' "${log}" | awk '{print $4}' | sort -u | tr '\n' ' ')
+              echo "round ${i} ${v}: passed=${passed:-?} total_ms=${total_ms:-?} failed=[${failed}]"
+            done
+          done
+          {
+            echo "### A/B full WalletTests / ${{ matrix.cc }} / ${ROUNDS} rounds each, one runner, order alternating"
+            echo ""
+            echo "| run | A passed | A total ms | B passed | B total ms |"
+            echo "|---|---|---|---|---|"
+            for i in $(seq 1 "${ROUNDS}"); do
+              row="| ${i}"
+              for v in A B; do
+                log="ab-logs/${v}-${i}.log"
+                p=$(grep -oE '^\[  PASSED  \] [0-9]+ test' "${log}" | grep -oE '[0-9]+')
+                t=$(grep -oE '\([0-9]+ ms total\)' "${log}" | grep -oE '[0-9]+')
+                row="${row} | ${p:-?} | ${t:-?}"
+              done
+              echo "${row} |"
+            done
+            echo ""
+            echo "| failing test | A: failed/rounds | B (with #794): failed/rounds |"
+            echo "|---|---|---|"
+            cat ab-logs/*.log | grep -E '^\[  FAILED  \] [A-Za-z_0-9]+\.[A-Za-z_0-9]+ \(' | awk '{print $4}' | sort -u | while read -r t; do
+              fa=$(cat ab-logs/A-*.log | grep -cF "[  FAILED  ] ${t} (")
+              fb=$(cat ab-logs/B-*.log | grep -cF "[  FAILED  ] ${t} (")
+              echo "| ${t} | ${fa}/${ROUNDS} | ${fb}/${ROUNDS} |"
+            done
+          } | tee -a "${GITHUB_STEP_SUMMARY}"
+          exit 0
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ab-full-${{ matrix.cc }}
+          path: ab-logs/
+          if-no-files-found: warn
