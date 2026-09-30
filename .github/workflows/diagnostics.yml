@@ -1,0 +1,233 @@
+name: Armory diagnostics (ASan BridgeTests, A/B timing tests)
+
+# Two diagnostics on top of goatpig/BitcoinArmory rc2_fixes (5554ef1f):
+# 1. BridgeTests under AddressSanitizer (GCC), with and without PR #794.
+# 2. The timing-sensitive WalletTests run A/B on the SAME runner, interleaved:
+#    A = rc2_fixes + gtest fix, B = rc2_fixes + PR #794 + gtest fix
+#    (A and B differ exactly by the 12 files of PR #794).
+# Every checkout is pinned by its git tree hash.
+
+on:
+  push:
+    branches: [ci/diagnostics]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LIBBTC_COMMIT: 07933995eb5010a016c75fb703a66023116013a3
+  LWS_TAG: v4.5.8
+  LWS_COMMIT: fbb0baf6af9c4324f0f1591734c78b0089b599d4
+
+jobs:
+  asan:
+    name: ASan BridgeTests / gcc / ${{ matrix.label }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: rc2_fixes,            ref: 5554ef1f2efe500392525ca82fb94188006bff1e, tree: d8b0ef52f0e20ff0681af704ad603aede3d1325a }
+          - { label: rc2_fixes+794+gtestfix, ref: tests/794-with-wallettests-fix,        tree: 5cc2891cff4794bf5587fe7816739c5dca4953f8 }
+    steps:
+      - name: Checkout Armory (${{ matrix.ref }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          path: BitcoinArmory
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Confirm the exact source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          got="$(git -C BitcoinArmory rev-parse 'HEAD^{tree}')"
+          echo "commit: $(git -C BitcoinArmory rev-parse HEAD) | tree: ${got}"
+          test "${got}" = "${{ matrix.tree }}"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            capnproto libcapnp-dev liblmdb-dev cmake libgtest-dev
+
+      - name: Build libbtc and libwebsockets (pinned)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/libbtc/libbtc
+          git -C libbtc checkout --quiet "${LIBBTC_COMMIT}"
+          test "$(git -C libbtc rev-parse HEAD)" = "${LIBBTC_COMMIT}"
+          (cd libbtc && sh autogen.sh && CFLAGS="-fPIC -g" ./configure --disable-wallet \
+            --disable-tools --disable-net --disable-shared && make -j"$(nproc)")
+          git clone --quiet --branch "${LWS_TAG}" --depth 1 https://github.com/warmcat/libwebsockets
+          test "$(git -C libwebsockets rev-parse HEAD)" = "${LWS_COMMIT}"
+          cmake -S libwebsockets -B libwebsockets/build -DLWS_WITH_SSL=OFF -DLWS_WITHOUT_TESTAPPS=ON
+          cmake --build libwebsockets/build -j"$(nproc)"
+
+      - name: Configure and build with AddressSanitizer (make -k)
+        shell: bash
+        run: |
+          set -uo pipefail
+          cd BitcoinArmory
+          sh autogen.sh
+          mkdir build && cd build
+          f="-g -O1 -fno-omit-frame-pointer"
+          ../configure --enable-tests \
+            --with-own-libbtc="${GITHUB_WORKSPACE}/libbtc" \
+            --with-own-lws="${GITHUB_WORKSPACE}/libwebsockets/build" \
+            CC="gcc -fsanitize=address" CXX="g++ -fsanitize=address" \
+            CFLAGS="${f}" CXXFLAGS="${f}" > configure.log 2>&1 || { tail -30 configure.log; exit 1; }
+          if make -k -j"$(nproc)" > make.log 2>&1; then rc=0; else rc=$?; fi
+          echo "make rc=${rc} (make -k; a failure here can be the known ContainerTests link issue)"
+          grep -E '\*\*\* \[' make.log | sed -E 's/^make\[[0-9]+\]: //' | sort -u || true
+          test -x cppForSwig/gtest/BridgeTests
+          nm -u cppForSwig/gtest/BridgeTests | grep -q __asan_ && echo "BridgeTests is instrumented with ASan"
+
+      - name: Run BridgeTests under ASan (full suite, then Connect x20)
+        timeout-minutes: 150
+        shell: bash
+        run: |
+          set -uo pipefail
+          cd BitcoinArmory/build/cppForSwig/gtest
+          export ASAN_OPTIONS="detect_leaks=0:halt_on_error=1"
+          if ./BridgeTests > asan-full.log 2>&1; then rc1=0; else rc1=$?; fi
+          if ./BridgeTests --gtest_filter=WalletManagerWebsocketsTests.Connect --gtest_repeat=20 > asan-connect.log 2>&1; then rc2=0; else rc2=$?; fi
+          {
+            echo "### ASan BridgeTests / gcc / ${{ matrix.label }}"
+            for pair in "full suite:asan-full.log:${rc1}" "Connect x20:asan-connect.log:${rc2}"; do
+              IFS=: read -r what log rc <<< "${pair}"
+              echo "- ${what}: rc=${rc} | tests started: $(grep -cE '^\[ RUN      \]' "${log}") | OK: $(grep -cE '^\[       OK \]' "${log}") | ASan errors: $(grep -c 'ERROR: AddressSanitizer' "${log}")"
+            done
+          } | tee -a "${GITHUB_STEP_SUMMARY}"
+          for log in asan-full.log asan-connect.log; do
+            if grep -q 'ERROR: AddressSanitizer' "${log}"; then
+              echo "---- ${log}: first ASan report ----"
+              awk '/ERROR: AddressSanitizer/{p=1} p{print} /^SUMMARY: AddressSanitizer/{exit}' "${log}" | head -60
+            fi
+          done
+          true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asan-${{ strategy.job-index }}
+          path: |
+            BitcoinArmory/build/make.log
+            BitcoinArmory/build/cppForSwig/gtest/asan-*.log
+          if-no-files-found: warn
+
+  timing-ab:
+    name: A/B timing tests / ${{ matrix.cc }} (same runner, interleaved)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    env:
+      TESTS: "WalletInterfaceTest.Passphrase_Test:WalletsTest.ChangePassphrase_ChangeKDF:WalletsTest.ChangePassphrase_FromUnencryptedWallet:WalletsTest.ChangePassphrase_SeedBIP32:BackupTests.BackupStrings_LegacyWithChaincode"
+      ROUNDS: "5"
+    steps:
+      - name: Checkout A (rc2_fixes + gtest fix)
+        uses: actions/checkout@v4
+        with:
+          ref: fix-wallettests-clang
+          path: A
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout B (rc2_fixes + PR 794 + gtest fix)
+        uses: actions/checkout@v4
+        with:
+          ref: tests/794-with-wallettests-fix
+          path: B
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Confirm the exact source trees (A and B differ only by PR 794)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C A rev-parse 'HEAD^{tree}')" = 75c80a708e3a173de00bea51ab53484fc789aa34
+          test "$(git -C B rev-parse 'HEAD^{tree}')" = 5cc2891cff4794bf5587fe7816739c5dca4953f8
+          echo "A: $(git -C A rev-parse HEAD) tree 75c80a70 | B: $(git -C B rev-parse HEAD) tree 5cc2891c"
+          lscpu | grep -E 'Model name|^CPU\(s\)' || true
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            capnproto libcapnp-dev liblmdb-dev cmake libgtest-dev clang
+
+      - name: Build libbtc and libwebsockets (pinned)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/libbtc/libbtc
+          git -C libbtc checkout --quiet "${LIBBTC_COMMIT}"
+          test "$(git -C libbtc rev-parse HEAD)" = "${LIBBTC_COMMIT}"
+          (cd libbtc && sh autogen.sh && CFLAGS="-fPIC -g" ./configure --disable-wallet \
+            --disable-tools --disable-net --disable-shared && make -j"$(nproc)")
+          git clone --quiet --branch "${LWS_TAG}" --depth 1 https://github.com/warmcat/libwebsockets
+          test "$(git -C libwebsockets rev-parse HEAD)" = "${LWS_COMMIT}"
+          cmake -S libwebsockets -B libwebsockets/build -DLWS_WITH_SSL=OFF -DLWS_WITHOUT_TESTAPPS=ON
+          cmake --build libwebsockets/build -j"$(nproc)"
+
+      - name: Build A and B (same flags, same runner)
+        shell: bash
+        run: |
+          set -uo pipefail
+          extra=()
+          if [ "${{ matrix.cc }}" = "clang" ]; then extra+=(CC=clang CXX=clang++); fi
+          for v in A B; do
+            (cd "${v}" && sh autogen.sh > /dev/null 2>&1 && mkdir build && cd build \
+              && ../configure --enable-tests \
+                   --with-own-libbtc="${GITHUB_WORKSPACE}/libbtc" \
+                   --with-own-lws="${GITHUB_WORKSPACE}/libwebsockets/build" "${extra[@]}" > configure.log 2>&1 \
+              && { make -k -j"$(nproc)" > make.log 2>&1 || true; })
+            test -x "${v}/build/cppForSwig/gtest/WalletTests" && echo "${v}: WalletTests built"
+          done
+          test -x A/build/cppForSwig/gtest/WalletTests && test -x B/build/cppForSwig/gtest/WalletTests
+
+      - name: Run the timing tests, interleaved A,B,A,B...
+        timeout-minutes: 150
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p ab-logs
+          for i in $(seq 1 "${ROUNDS}"); do
+            for v in A B; do
+              (cd "${v}/build/cppForSwig/gtest" && ./WalletTests --gtest_filter="${TESTS}" > "${GITHUB_WORKSPACE}/ab-logs/${v}-${i}.log" 2>&1) || true
+              echo "round ${i} ${v}: OK=$(grep -cE '^\[       OK \]' "ab-logs/${v}-${i}.log") FAILED=$(grep -cE '^\[  FAILED  \] [A-Za-z_]+\.[A-Za-z_0-9]+ \(' "ab-logs/${v}-${i}.log")"
+            done
+          done
+          {
+            echo "### A/B timing tests / ${{ matrix.cc }} / ${ROUNDS} rounds each, interleaved on one runner"
+            echo "| test | A: failed/rounds | B (with #794): failed/rounds |"
+            echo "|---|---|---|"
+            IFS=: read -r -a names <<< "${TESTS}"
+            for t in "${names[@]}"; do
+              fa=$(cat ab-logs/A-*.log | grep -cE "^\[  FAILED  \] ${t} \(")
+              fb=$(cat ab-logs/B-*.log | grep -cE "^\[  FAILED  \] ${t} \(")
+              echo "| ${t} | ${fa}/${ROUNDS} | ${fb}/${ROUNDS} |"
+            done
+          } | tee -a "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ab-${{ matrix.cc }}
+          path: ab-logs/
+          if-no-files-found: warn
