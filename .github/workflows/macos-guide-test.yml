@@ -1,0 +1,122 @@
+name: macOS build guide, followed from scratch (macos-15)
+
+# Follows build_instructions/osx/macos.md (copy in ci-guide/macos.md, guide
+# sha256 5e65e43c) on a clean macos-15 runner. Unlike the local test, the
+# Homebrew lines of sections 1 and 2 are run here. The command blocks of
+# sections 1 and 3 to 6 are extracted from the guide and run as written by
+# ci-guide/extrai.py, the same extractor as the local test. Opening ArmoryQt
+# needs a display, so the job checks the build, c20p1305 and the Qt binding.
+# The code is macos-gui-fixes merged with pr794-namespace (tree 5ea96bad):
+# rc2_fixes does not build on macOS without #794, nor start without #796.
+
+on:
+  push:
+    branches: [ci/macos-guide-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  GUIDE_SHA: 5e65e43c5ed4b2f4bacc26b2311d86c27a925f3122697657897bad761c785c83
+  EXTRACT_SHA: ea2056c8e9ee0e1fbff941ffbecd62f4c8040a2218505a22942b9c0e1e393df1
+  FIX_COMMIT: af6659fc67869c4be20bd9241df9101023dbe611
+  NS_COMMIT: a9b2750cc8e12f1c12073950fbb89641e6b03767
+  MERGED_TREE: 5ea96badbffef01c3761dfdc116acae5f604839c
+
+jobs:
+  guide:
+    runs-on: macos-15
+    timeout-minutes: 150
+    steps:
+      - name: Checkout this branch (the guide copy and the extractor)
+        uses: actions/checkout@v4
+        with:
+          path: ci
+          persist-credentials: false
+
+      - name: Confirm the guide and the extractor, and the runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(shasum -a 256 ci/ci-guide/macos.md | cut -c1-64)" = "${GUIDE_SHA}"
+          test "$(shasum -a 256 ci/ci-guide/extrai.py | cut -c1-64)" = "${EXTRACT_SHA}"
+          echo "guide ${GUIDE_SHA:0:8} | extractor ${EXTRACT_SHA:0:8}"
+          sw_vers -productVersion; uname -m; clang --version | head -1; brew --version | head -1
+          echo "python3: $(command -v python3) ($(python3 --version 2>&1))"
+
+      - name: Prepare the code (not part of the guide)
+        shell: bash
+        run: |
+          set -euo pipefail
+          T="${GITHUB_WORKSPACE}/parent"
+          mkdir -p "${T}"
+          git clone --quiet https://github.com/devdavidejesus/BitcoinArmory "${T}/BitcoinArmory"
+          cd "${T}/BitcoinArmory"
+          test "$(git rev-parse origin/macos-gui-fixes)" = "${FIX_COMMIT}"
+          test "$(git rev-parse origin/pr794-namespace)" = "${NS_COMMIT}"
+          git -c advice.detachedHead=false checkout --quiet --detach origin/macos-gui-fixes
+          t="$(git merge-tree --write-tree HEAD origin/pr794-namespace)"
+          test "${t}" = "${MERGED_TREE}"
+          git read-tree -u --reset "${t}"
+          test "$(git write-tree)" = "${MERGED_TREE}"
+          echo "code: macos-gui-fixes + pr794-namespace, tree ${t}"
+
+      - name: Homebrew lines of the guide (sections 1 and 2), run as written
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - ci/ci-guide/macos.md > brew-lines.sh <<'PY'
+          import re, sys, textwrap
+          sec, lines, inside, cur = None, [], False, []
+          for l in open(sys.argv[1], encoding="utf-8").read().split("\n"):
+              m = re.match(r"^# (\d)\. ", l)
+              if m and not inside:
+                  sec = int(m.group(1)); continue
+              if sec == 1 and not inside:
+                  lines += re.findall(r"`(brew install [^`]+)`", l)
+              if l.strip().startswith("```"):
+                  if inside and sec == 2:
+                      lines += textwrap.dedent("\n".join(cur)).strip().split("\n")
+                  cur = []; inside = not inside; continue
+              if inside: cur.append(l)
+          print("set -e")
+          for c in lines: print(c)
+          PY
+          cat brew-lines.sh
+          test "$(grep -c '^brew install' brew-lines.sh)" = 2
+          bash brew-lines.sh
+          brew list --versions autoconf automake libtool pkgconf cmake capnp lmdb
+
+      - name: Follow the guide, sections 1 and 3 to 6, as written
+        shell: bash
+        run: |
+          set -euo pipefail
+          T="${GITHUB_WORKSPACE}/parent"
+          python3 ci/ci-guide/extrai.py ci/ci-guide/macos.md "${T}" "${T}/roteiro.sh" | tee counts.txt
+          grep -q '^blocos encontrados no guia: 8 | executados: 6 | pulados: 2$' counts.txt
+          zsh -f "${T}/roteiro.sh" 2>&1 | tee "${T}/teste-guia.log"
+          grep -E '^######## bloco|^  -> bloco' "${T}/teste-guia.log"
+
+      - name: Check the result
+        shell: bash
+        run: |
+          set -euo pipefail
+          T="${GITHUB_WORKSPACE}/parent"; B="${T}/BitcoinArmory"; VP="${T}/armory-venv/bin/python"
+          test -x "${B}/build/CppBridge"; test -x "${B}/build/ArmoryDB"
+          so="$(cd "${B}/armoryengine" && ls c20p1305.cpython-*-darwin.so)"
+          (cd "${B}/armoryengine" && "${VP}" -c "import importlib.util as u; s=u.spec_from_file_location('c20p1305','${so}'); m=u.module_from_spec(s); s.loader.exec_module(m); assert m.lib is not None and m.ffi is not None")
+          api="$("${VP}" -c 'import qtpy, psutil, capnp; print(qtpy.API_NAME)')"
+          test "${api}" = "PySide6"
+          line="macos-15 | $(sw_vers -productVersion) | $("${VP}" --version 2>&1) | CppBridge built | ArmoryDB built | ${so} loads | qtpy uses ${api}"
+          echo "${line}"
+          echo "${line}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "OK: the guide works from scratch on a clean macos-15 runner"
+
+      - name: Upload the guide test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-guide-test-log
+          path: parent/teste-guia.log
+          if-no-files-found: warn
