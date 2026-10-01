@@ -1,11 +1,15 @@
 name: macOS GUI fixes build check (--enable-tests)
 
 # Builds the two macOS GUI fixes from #795 (branch macos-gui-fixes, on top of
-# goatpig/rc2_fixes 4aacbea, tree 79301c3d) with gcc and clang on Ubuntu 24.04.
-# macOS 15 cannot build rc2_fixes without PR #794 yet, so there the branch is
-# merged with PR #794 + Armory::Threading (pr794-namespace a9b2750, tree 5ea96bad).
+# goatpig/rc2_fixes 4aacbea, tree 79301c3d), as is (pr-head) and merged with
+# PR #794 + Armory::Threading (pr794-namespace a9b2750, tree 5ea96bad).
+# macOS 15 cannot build rc2_fixes without #794, so it only runs with-pr794.
 # A job passes when CppBridge, ArmoryDB, WalletTests and BridgeTests build and
 # the only failing make target, if any, is gtest/ContainerTests.
+# One exception, set by the matrix: with clang, rc2_fixes itself does not build
+# WalletTests (ambiguous operator== between BinaryDataRef and SecureBinaryData,
+# fixed by #794). On clang/pr-head that failure is allowed, and only when every
+# compiler error in the log is that one.
 
 on:
   push:
@@ -32,9 +36,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-24.04, cc: gcc, variant: pr-head }
-          - { os: ubuntu-24.04, cc: clang, variant: pr-head }
-          - { os: macos-15, cc: clang, variant: with-pr794 }
+          - { os: ubuntu-24.04, cc: gcc, variant: pr-head, allow: "" }
+          - { os: ubuntu-24.04, cc: clang, variant: pr-head, allow: "gtest/WalletTests-WalletTests.o" }
+          - { os: ubuntu-24.04, cc: clang, variant: with-pr794, allow: "" }
+          - { os: macos-15, cc: clang, variant: with-pr794, allow: "" }
     steps:
       - name: Checkout macos-gui-fixes
         uses: actions/checkout@v4
@@ -125,27 +130,36 @@ jobs:
 
       - name: Build (make -k) and check the test binaries
         shell: bash
+        env:
+          ALLOW: ${{ matrix.allow }}
         run: |
           set +e
           cd BitcoinArmory/build
           make -k -j"$(getconf _NPROCESSORS_ONLN)" > make.log 2>&1
           rc=$?
           failed="$(grep -oE '\*\*\* \[[^]]*\]' make.log | sed -E 's/^\*\*\* \[//; s/\]$//; s/^.*: //' | grep -vE '^all(-recursive|-am)?$' | sort -u | tr '\n' ' ')"
-          unexpected="$(echo "${failed}" | tr ' ' '\n' | grep -vE '^(gtest/ContainerTests)?$' | tr '\n' ' ')"
+          allow_re='gtest/ContainerTests'
+          if [ -n "${ALLOW}" ]; then allow_re="${allow_re}|${ALLOW}"; fi
+          unexpected="$(echo "${failed}" | tr ' ' '\n' | grep -vE "^(${allow_re})?\$" | tr '\n' ' ')"
           wt=NOT; [ -x cppForSwig/gtest/WalletTests ] && wt=built
           bt=NOT; [ -x cppForSwig/gtest/BridgeTests ] && bt=built
           cb=NOT; [ -x CppBridge ] && cb=built
           db=NOT; [ -x ArmoryDB ] && db=built
-          line="${{ matrix.os }} | ${{ matrix.cc }} | ${{ matrix.variant }} | make rc=${rc} | failed targets: ${failed:-none} | CppBridge ${cb} | ArmoryDB ${db} | WalletTests ${wt} | BridgeTests ${bt}"
+          known="use of overloaded operator '==' is ambiguous (with operand types 'const BinaryDataRef' and 'const SecureBinaryData')"
+          n_err=$(grep -c 'error:' make.log); n_known=$(grep -cF "${known}" make.log)
+          wt_ok=no
+          if [ "${wt}" = built ]; then wt_ok=yes
+          elif [ -n "${ALLOW}" ] && [ "${n_known}" -ge 1 ] && [ "${n_known}" -eq "${n_err}" ]; then wt_ok="allowed (known clang error on rc2_fixes, fixed by #794)"; fi
+          line="${{ matrix.os }} | ${{ matrix.cc }} | ${{ matrix.variant }} | make rc=${rc} | failed targets: ${failed:-none} | CppBridge ${cb} | ArmoryDB ${db} | WalletTests ${wt} | BridgeTests ${bt} | compiler errors: ${n_err} (known: ${n_known})"
           echo "${line}"
           echo "${line}" >> "${GITHUB_STEP_SUMMARY}"
           echo "---- first errors ----"
           grep -m 10 -E 'error:|undefined reference' make.log || echo "(none)"
-          if [ "${cb}" = built ] && [ "${db}" = built ] && [ "${wt}" = built ] && [ "${bt}" = built ] && [ -z "${unexpected// /}" ]; then
-            echo "OK: CppBridge, ArmoryDB, WalletTests and BridgeTests built; unexpected failing targets: none"
+          if [ "${cb}" = built ] && [ "${db}" = built ] && [ "${bt}" = built ] && [ "${wt_ok}" != no ] && [ -z "${unexpected// /}" ]; then
+            echo "OK: CppBridge, ArmoryDB and BridgeTests built; WalletTests: ${wt_ok}; unexpected failing targets: none"
             exit 0
           fi
-          echo "::error::CppBridge=${cb} ArmoryDB=${db} WalletTests=${wt} BridgeTests=${bt} unexpected failing targets: ${unexpected:-none}"
+          echo "::error::CppBridge=${cb} ArmoryDB=${db} WalletTests=${wt} (${wt_ok}) BridgeTests=${bt} unexpected failing targets: ${unexpected:-none} compiler errors: ${n_err} (known: ${n_known})"
           exit 1
 
       - name: Upload make log
