@@ -1,0 +1,157 @@
+name: macOS GUI fixes build check (--enable-tests)
+
+# Builds the two macOS GUI fixes from #795 (branch macos-gui-fixes, on top of
+# goatpig/rc2_fixes 4aacbea, tree 79301c3d) with gcc and clang on Ubuntu 24.04.
+# macOS 15 cannot build rc2_fixes without PR #794 yet, so there the branch is
+# merged with PR #794 + Armory::Threading (pr794-namespace a9b2750, tree 5ea96bad).
+# A job passes when CppBridge, ArmoryDB, WalletTests and BridgeTests build and
+# the only failing make target, if any, is gtest/ContainerTests.
+
+on:
+  push:
+    branches: [ci/macos-gui-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  LIBBTC_COMMIT: 07933995eb5010a016c75fb703a66023116013a3
+  LWS_TAG: v4.5.8
+  LWS_COMMIT: fbb0baf6af9c4324f0f1591734c78b0089b599d4
+  PR_TREE: 79301c3dea738e260e2294709e8d7f312dffd911
+  NS_COMMIT: a9b2750cc8e12f1c12073950fbb89641e6b03767
+  MERGED_TREE: 5ea96badbffef01c3761dfdc116acae5f604839c
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.cc }} / ${{ matrix.variant }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, cc: gcc, variant: pr-head }
+          - { os: ubuntu-24.04, cc: clang, variant: pr-head }
+          - { os: macos-15, cc: clang, variant: with-pr794 }
+    steps:
+      - name: Checkout macos-gui-fixes
+        uses: actions/checkout@v4
+        with:
+          ref: macos-gui-fixes
+          path: BitcoinArmory
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Confirm the exact tree (and merge PR 794 for with-pr794)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd BitcoinArmory
+          test "$(git rev-parse 'HEAD^{tree}')" = "${PR_TREE}"
+          echo "PR head: $(git rev-parse HEAD) | tree ${PR_TREE}"
+          if [ "${{ matrix.variant }}" = "with-pr794" ]; then
+            test "$(git rev-parse origin/pr794-namespace)" = "${NS_COMMIT}"
+            t="$(git merge-tree --write-tree HEAD "${NS_COMMIT}")"
+            test "${t}" = "${MERGED_TREE}"
+            git read-tree -u --reset "${t}"
+            test "$(git write-tree)" = "${MERGED_TREE}"
+            echo "merged with pr794-namespace ${NS_COMMIT}: tree ${t}"
+          fi
+
+      - name: Python syntax check of ArmoryQt.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 -m py_compile BitcoinArmory/ArmoryQt.py
+          echo "OK: ArmoryQt.py compiles"
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential autoconf automake libtool pkg-config \
+            capnproto libcapnp-dev liblmdb-dev cmake libgtest-dev clang
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install autoconf automake libtool pkg-config capnp lmdb cmake googletest
+
+      - name: Toolchain versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.cc }}" = "clang" ]; then clang++ --version | head -1; else g++ --version | head -1; fi
+
+      - name: Build libbtc and libwebsockets (pinned)
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/libbtc/libbtc
+          git -C libbtc checkout --quiet "${LIBBTC_COMMIT}"
+          test "$(git -C libbtc rev-parse HEAD)" = "${LIBBTC_COMMIT}"
+          (cd libbtc && sh autogen.sh && CFLAGS="-fPIC -g" ./configure --disable-wallet \
+            --disable-tools --disable-net --disable-shared && make -j"$(getconf _NPROCESSORS_ONLN)")
+          git clone --quiet --branch "${LWS_TAG}" --depth 1 https://github.com/warmcat/libwebsockets
+          test "$(git -C libwebsockets rev-parse HEAD)" = "${LWS_COMMIT}"
+          cmake -S libwebsockets -B libwebsockets/build -DLWS_WITH_SSL=OFF -DLWS_WITHOUT_TESTAPPS=ON
+          cmake --build libwebsockets/build -j"$(getconf _NPROCESSORS_ONLN)"
+
+      - name: Configure with --enable-tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd BitcoinArmory
+          sh autogen.sh
+          mkdir build && cd build
+          extra=()
+          if [ "${{ matrix.cc }}" = "clang" ]; then extra+=(CC=clang CXX=clang++); fi
+          if [ "${RUNNER_OS}" = "macOS" ]; then
+            p="$(brew --prefix)"
+            extra+=(CPPFLAGS="-I${p}/include" LDFLAGS="-L${p}/lib")
+          fi
+          ../configure --enable-tests \
+            --with-own-libbtc="${GITHUB_WORKSPACE}/libbtc" \
+            --with-own-lws="${GITHUB_WORKSPACE}/libwebsockets/build" \
+            "${extra[@]}"
+
+      - name: Build (make -k) and check the test binaries
+        shell: bash
+        run: |
+          set +e
+          cd BitcoinArmory/build
+          make -k -j"$(getconf _NPROCESSORS_ONLN)" > make.log 2>&1
+          rc=$?
+          failed="$(grep -oE '\*\*\* \[[^]]*\]' make.log | sed -E 's/^\*\*\* \[//; s/\]$//; s/^.*: //' | grep -vE '^all(-recursive|-am)?$' | sort -u | tr '\n' ' ')"
+          unexpected="$(echo "${failed}" | tr ' ' '\n' | grep -vE '^(gtest/ContainerTests)?$' | tr '\n' ' ')"
+          wt=NOT; [ -x cppForSwig/gtest/WalletTests ] && wt=built
+          bt=NOT; [ -x cppForSwig/gtest/BridgeTests ] && bt=built
+          cb=NOT; [ -x CppBridge ] && cb=built
+          db=NOT; [ -x ArmoryDB ] && db=built
+          line="${{ matrix.os }} | ${{ matrix.cc }} | ${{ matrix.variant }} | make rc=${rc} | failed targets: ${failed:-none} | CppBridge ${cb} | ArmoryDB ${db} | WalletTests ${wt} | BridgeTests ${bt}"
+          echo "${line}"
+          echo "${line}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "---- first errors ----"
+          grep -m 10 -E 'error:|undefined reference' make.log || echo "(none)"
+          if [ "${cb}" = built ] && [ "${db}" = built ] && [ "${wt}" = built ] && [ "${bt}" = built ] && [ -z "${unexpected// /}" ]; then
+            echo "OK: CppBridge, ArmoryDB, WalletTests and BridgeTests built; unexpected failing targets: none"
+            exit 0
+          fi
+          echo "::error::CppBridge=${cb} ArmoryDB=${db} WalletTests=${wt} BridgeTests=${bt} unexpected failing targets: ${unexpected:-none}"
+          exit 1
+
+      - name: Upload make log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: make-${{ matrix.os }}-${{ matrix.cc }}-${{ matrix.variant }}
+          path: BitcoinArmory/build/make.log
+          if-no-files-found: warn
