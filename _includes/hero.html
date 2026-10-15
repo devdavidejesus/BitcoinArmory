@@ -1,0 +1,31 @@
+{% assign latest = site.categories.releases | first %}
+<section class="hero" aria-labelledby="hero-title">
+  <img class="hero__mark" src="{{ '/images/armory-icon-480.png' | relative_url }}" alt="" aria-hidden="true" />
+  <div class="container hero__inner">
+    <h1 id="hero-title" class="hero__title">Armory</h1>
+    <span class="split-bar" aria-hidden="true"></span>
+    <p class="hero__lead">An open-source Bitcoin wallet for keeping your savings offline.</p>
+    <div class="hero__actions">
+      {% if latest %}<a class="btn btn--primary" href="{{ latest.url | relative_url }}">Download {{ latest.title | remove: "Armory " | remove: " Released" }}</a>{% endif %}
+      <a class="btn btn--ghost" href="{{ '/docs/verify' | relative_url }}">Verify your download</a>
+      <a class="btn btn--ghost" href="https://github.com/{{ site.footer-links.github }}">Source on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<section class="pillars" aria-label="What Armory does">
+  <div class="container pillars__inner">
+    <div class="pillar pillar--orange">
+      <h2>Cold storage</h2>
+      <p>Keep your private keys on a computer that never touches the internet, with paper backups that work forever.</p>
+    </div>
+    <div class="pillar pillar--blue">
+      <h2>Offline signing</h2>
+      <p>Create transactions on an online watching-only wallet, then carry them on a USB key to the offline computer to sign.</p>
+    </div>
+    <div class="pillar pillar--steel">
+      <h2>Your own node</h2>
+      <p>Armory talks to the Bitcoin network only through your Bitcoin Core node, so no third-party server sees your addresses.</p>
+    </div>
+  </div>
+</section>

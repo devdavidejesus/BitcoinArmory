@@ -1,32 +1,35 @@
 ---
 layout: default
+hero: true
 ---
-<h1>Latest Release</h1>
-<div class="releases">
-  {% for post in site.categories.releases limit:1 %}
-    <article class="post">
-
-      <h2><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h2>
-
-      <div class="entry">
-        {{ post.excerpt }}
-      </div>
-
-      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
+{% assign latest = site.categories.releases | first %}
+<div class="home">
+  <section class="home__release" aria-labelledby="latest-release">
+    <h2 id="latest-release" class="section-title">Latest stable release</h2>
+    {% if latest %}
+    <article class="release-card">
+      <h3><a href="{{ latest.url | relative_url }}">{{ latest.title }}</a></h3>
+      <p class="meta"><time datetime="{{ latest.date | date_to_xmlschema }}">{{ latest.date | date: "%B %-d, %Y" }}</time></p>
+      <div class="entry">{{ latest.excerpt }}</div>
+      <p class="release-card__links">
+        <a href="{{ latest.url | relative_url }}">Release notes and downloads</a>
+        <a href="{{ '/releases/' | relative_url }}">All releases</a>
+      </p>
     </article>
-  {% endfor %}
-<hr>
-<h1>News</h1>
-<div class="posts">
-  {% for post in site.categories.news %}
-    <article class="post">
+    {% endif %}
+  </section>
 
-      <h2><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h2>
-      <div class="entry">
-        {{ post.excerpt }}
-      </div>
-
-      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
-    </article>
-  {% endfor %}
+  <section class="home__news" aria-labelledby="news">
+    <h2 id="news" class="section-title">News</h2>
+    <div class="posts">
+      {% for post in site.categories.news %}
+      <article class="post">
+        <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+        <p class="meta"><time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time></p>
+        <div class="entry">{{ post.excerpt }}</div>
+        <a href="{{ post.url | relative_url }}" class="read-more">Read the full post</a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
 </div>

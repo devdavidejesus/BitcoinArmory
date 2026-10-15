@@ -1,34 +1,34 @@
-<div class="wrapper-masthead">
-      <div class="container">
-        <header class="masthead clearfix">
-          <a href="{{ site.baseurl }}/" class="site-avatar"><img src="{{ site.avatar }}" /></a>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a href="{{ '/' | relative_url }}" class="brand" aria-label="{{ site.name }} home">
+      <img src="{{ site.avatar | relative_url }}" alt="" width="36" height="36" />
+      <span>{{ site.name }}</span>
+    </a>
 
-          <div class="site-info">
-            <h1 class="site-name"><a href="{{ site.baseurl }}/">{{ site.name }}</a></h1>
-            <p class="site-description">{{ site.description }}</p>
-          </div>
-
-          <nav>
-            
-            <ul id="menusimple" class="menusimple menumain">
-              <li{% if page.id == 'releases' %} class="active"{% endif %}><a href="{{ site.baseurl }}/releases">Releases</a>
-              <li><a>Documentation</a>
-            <ul>
-              <li{% if page.id == 'building' %} class="active"{% endif %}><a href="{{ site.baseurl }}/docs/building">Building From Source</a></li>
-              <li{% if page.id == 'verify' %} class="active"{% endif %}><a href="{{ site.baseurl }}/docs/verify">Verify Binaries</a></li>
-              <li{% if page.id == 'pathing' %} class="active"{% endif %}><a href="{{ site.baseurl }}/docs/pathing">Pathing</a></li>
-              <li{% if page.id == 'faq' %} class="active"{% endif %}><a href="{{ site.baseurl }}/docs/faq">FAQ</a></li>
-            </ul>
-            <li{% if page.id == 'contribute' %} class="active"{% endif %}><a href="{{ site.baseurl }}/contribute">Contribute</a>
-            <ul>
-              <li{% if page.id == 'armory-todo' %} class="active"{% endif %}><a href="{{ site.baseurl }}/contribute/armory-todo">Armory To-Do list</a>
-              <li{% if page.id == 'website-todo' %} class="active"{% endif %}><a href="{{ site.baseurl }}/contribute/website-todo">Website To-Do list</a></li>
-            </ul>
-              <li{% if page.id == 'contact' %} class="active"{% endif %}><a href="{{ site.baseurl }}/contact">Contact Us</a></li>
-              <li{% if page.id == 'about' %} class="active"{% endif %}><a href="{{ site.baseurl }}/about">About</a></li>
-            </ul>
-          </nav>
-        </header>
-      </div>
-    </div
-
+    <nav class="site-nav" aria-label="Main">
+      <ul>
+        <li{% if page.id == 'releases' %} class="active"{% endif %}><a href="{{ '/releases/' | relative_url }}">Releases</a></li>
+        <li class="has-sub{% if page.id == 'building' or page.id == 'verify' or page.id == 'pathing' or page.id == 'faq' %} active{% endif %}">
+          <a href="{{ '/docs/verify' | relative_url }}" aria-haspopup="true">Documentation</a>
+          <ul>
+            <li{% if page.id == 'verify' %} class="active"{% endif %}><a href="{{ '/docs/verify' | relative_url }}">Verify binaries</a></li>
+            <li{% if page.id == 'building' %} class="active"{% endif %}><a href="{{ '/docs/building/' | relative_url }}">Building from source</a></li>
+            <li{% if page.id == 'pathing' %} class="active"{% endif %}><a href="{{ '/docs/pathing' | relative_url }}">Pathing</a></li>
+            <li{% if page.id == 'faq' %} class="active"{% endif %}><a href="{{ '/docs/faq' | relative_url }}">FAQ</a></li>
+          </ul>
+        </li>
+        <li class="has-sub{% if page.id == 'contribute' or page.id == 'armory-todo' or page.id == 'website-todo' %} active{% endif %}">
+          <a href="{{ '/contribute/' | relative_url }}" aria-haspopup="true">Contribute</a>
+          <ul>
+            <li{% if page.id == 'contribute' %} class="active"{% endif %}><a href="{{ '/contribute/' | relative_url }}">How to contribute</a></li>
+            <li{% if page.id == 'armory-todo' %} class="active"{% endif %}><a href="{{ '/contribute/armory-todo/' | relative_url }}">Armory to-do list</a></li>
+            <li{% if page.id == 'website-todo' %} class="active"{% endif %}><a href="{{ '/contribute/website-todo/' | relative_url }}">Website to-do list</a></li>
+          </ul>
+        </li>
+        <li{% if page.id == 'contact' %} class="active"{% endif %}><a href="{{ '/contact/' | relative_url }}">Contact</a></li>
+        <li{% if page.id == 'about' %} class="active"{% endif %}><a href="{{ '/about/' | relative_url }}">About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>

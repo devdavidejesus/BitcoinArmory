@@ -1,30 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     {% include meta.html %}
     <title>{{ meta_title }}</title>
 
-    <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}/style.css" />
-    <link rel="alternate" type="application/rss+xml" title="{{ site.name }} - {{ site.description }}" href="{{ site.baseurl }}/feed.xml" />
-
-    <!-- Created with Jekyll Now - http://github.com/barryclark/jekyll-now -->
-    {% include head.html %}
-
+    <link rel="stylesheet" type="text/css" href="{{ '/style.css' | relative_url }}" />
+    <link rel="alternate" type="application/atom+xml" title="{{ site.name }}" href="{{ '/feed.xml' | relative_url }}" />
+    <!-- Originally based on Jekyll Now - https://github.com/barryclark/jekyll-now -->
   </head>
 
-    <body>
+  <body{% if page.hero %} class="has-hero"{% endif %}>
+    {% include head.html %}
 
-    <div id="main" role="main" class="container">
+    {% if page.hero %}{% include hero.html %}{% endif %}
+
+    <main id="main" class="container">
       {{ content }}
-    </div>
+    </main>
 
-    <div class="wrapper-footer">
-      <div class="container">
-        <footer class="footer">
-          {% include svg-icons.html %}
-        </footer>
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__brand">
+          <a href="{{ '/' | relative_url }}" class="brand">
+            <img src="{{ site.avatar | relative_url }}" alt="" width="28" height="28" />
+            <span>{{ site.name }}</span>
+          </a>
+          <span class="split-bar" aria-hidden="true"></span>
+          <p>Open-source Bitcoin wallet since 2011.</p>
+        </div>
+        <nav class="site-footer__links" aria-label="Project links">
+          <a href="https://github.com/{{ site.footer-links.github }}"><strong>GitHub</strong> <span>{{ site.footer-links.github }}</span></a>
+          {% if site.twitter_username %}<a href="https://x.com/{{ site.twitter_username }}"><strong>X</strong> <span>@{{ site.twitter_username }}</span></a>{% endif %}
+          <a href="https://github.com/{{ site.footer-links.github }}/issues"><strong>Report a bug</strong> <span>GitHub issues</span></a>
+          <a href="https://bitcointalk.org/index.php?board=97.0"><strong>Forum</strong> <span>Bitcointalk</span></a>
+          <a href="{{ '/feed.xml' | relative_url }}"><strong>News feed</strong> <span>Atom</span></a>
+        </nav>
       </div>
-    </div>
+    </footer>
 
     {% include analytics.html %}
   </body>
