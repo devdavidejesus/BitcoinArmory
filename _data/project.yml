@@ -1,0 +1,10 @@
+# Project status shown under the home page hero.
+# Update `next` when the release target changes. The stable release is read
+# from the newest post in the `releases` category, so it updates itself.
+
+next:
+  as_of: "October 2026"
+  version: "0.97"
+  summary: "adds a new wallet format that can hold BIP 32 and BIP 39 seeds, PSBT for offline signing, and support for the obfuscated block files of Bitcoin Core 28 and later."
+  link_text: "Follow the work on GitHub"
+  link_url: https://github.com/users/goatpig/projects/1

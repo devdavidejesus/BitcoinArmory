@@ -1,0 +1,31 @@
+{% assign latest = site.categories.releases | first %}
+{% assign stable = latest.title | remove: "Armory " | remove: " Released" %}
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container hero__inner">
+    <div class="hero__text">
+      <h1 id="hero-title" class="hero__title">Keep your bitcoin keys on a computer that never goes online.</h1>
+      <span class="split-bar" aria-hidden="true"></span>
+      <p class="hero__lead">Armory is a free, open-source Bitcoin wallet for offline signing and paper backups. It works with your own Bitcoin Core node, so no third-party server sees your addresses.</p>
+      <div class="hero__actions">
+        {% if latest %}<a class="btn btn--primary" href="{{ latest.url | relative_url }}">Download Armory {{ stable }}</a>{% endif %}
+        <a class="btn btn--ghost" href="{{ '/docs/verify' | relative_url }}">Verify your download</a>
+      </div>
+      <p class="hero__note">Using Bitcoin Core 28 or later? Armory 0.96.x <a href="{{ '/docs/faq#does-armory-work-with-bitcoin-core-28-and-later' | relative_url }}">cannot read the block files of a node created with it</a>.</p>
+    </div>
+
+    <div class="hero__diagram">
+      {% include signing-flow.svg %}
+    </div>
+  </div>
+
+  <div class="status">
+    <dl class="container status__inner">
+      {% if latest %}
+      <dt>Stable release</dt>
+      <dd><a href="{{ latest.url | relative_url }}">Armory {{ stable }}</a>, released {{ latest.date | date: "%B %-d, %Y" }}</dd>
+      {% endif %}
+      <dt>In development{% if site.data.project.next.as_of %} <span class="status__asof">as of {{ site.data.project.next.as_of }}</span>{% endif %}</dt>
+      <dd>Armory {{ site.data.project.next.version }} {{ site.data.project.next.summary }} <a href="{{ site.data.project.next.link_url }}">{{ site.data.project.next.link_text }}</a></dd>
+    </dl>
+  </div>
+</section>

@@ -1,27 +1,40 @@
-
 //
 // VARIABLES
 //
+// Brand colours come from the Armory logo. They are fixed: the header, hero
+// and footer are navy in both light and dark mode.
+// Page colours that change with the reader's light/dark preference are CSS
+// custom properties, defined in style.scss (:root and the dark media query).
+//
 
-// Colors
-$blue: #4183C4;
-
-// Grays
-$black: #000;
-$darkerGray: #222;
-$darkGray: #333;
-$gray: #666;
-$lightGray: #eee;
+$navy: #0d1626;       // header, hero, footer
+$steel: #1a2a45;      // raised surfaces on navy
+$blue: #3f6fd8;       // logo blue, primary actions
+$blue-light: #8fb0f5; // blue on navy (contrast)
+$orange: #d6662a;     // logo orange, accents only
+$charcoal: #3a3f47;   // logo grey
 $white: #fff;
 
-// Font stacks
-$helvetica: Helvetica, Arial, sans-serif;
-$helveticaNeue: "Helvetica Neue", Helvetica, Arial, sans-serif;
-$georgia: Georgia, serif;
+// Themeable page colours
+$bg: var(--bg);
+$surface: var(--surface);
+$ink: var(--ink);
+$muted: var(--muted);
+$line: var(--line);
+$link: var(--link);
+$code-bg: var(--code-bg);
 
-// Mobile breakpoints
+// Atkinson Hyperlegible was designed so that similar characters (0/O, 1/l/I)
+// cannot be confused, which is what matters when comparing fingerprints and
+// hashes. Served from this site: no third-party font requests.
+$sans: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+$mono: "Atkinson Hyperlegible Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+$measure: 44rem; // about 75 characters per line
+$wide: 72rem;
+
 @mixin mobile {
-  @media screen and (max-width: 640px) {
+  @media screen and (max-width: 760px) {
     @content;
   }
 }

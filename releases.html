@@ -1,11 +1,26 @@
 ---
-layout: default
+layout: page
+title: Releases and news
 id: releases
 ---
-<div class="posts">
+<p>Binaries are published on the <a href="https://github.com/goatpig/BitcoinArmory/releases">GitHub releases page</a>. Always <a href="{{ '/docs/verify' | relative_url }}">verify your download</a> before running it.</p>
+
+<h2>Releases</h2>
+<div class="releases-list">
 {% for post in site.categories.releases %}
-    <article class="post">
-      <h2><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h2>
-    </article>
+  <article class="post">
+    <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+    <p class="meta"><time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time></p>
+  </article>
+{% endfor %}
+</div>
+
+<h2>News</h2>
+<div class="releases-list">
+{% for post in site.categories.news %}
+  <article class="post">
+    <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+    <p class="meta"><time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%B %-d, %Y" }}</time></p>
+  </article>
 {% endfor %}
 </div>

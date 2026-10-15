@@ -1,32 +1,96 @@
 ---
 layout: default
+hero: true
+title: "Armory – open-source Bitcoin wallet for cold storage"
+title_is_full: true
+description: "Armory is a free, open-source Bitcoin wallet for cold storage: sign transactions on an offline computer, print paper backups and use your own Bitcoin Core node."
 ---
-<h1>Latest Release</h1>
-<div class="releases">
-  {% for post in site.categories.releases limit:1 %}
-    <article class="post">
+<section class="home-section" aria-labelledby="how">
+  <h2 id="how">How offline signing works</h2>
+  <p class="home-section__intro">Your private keys stay on a computer that never connects to the internet. A watching-only copy of the wallet does everything that needs a connection.</p>
+  <ol class="steps" role="list">
+    <li>
+      <h3>Create</h3>
+      <p>On the online computer, the watching-only wallet shows your balance and prepares an unsigned transaction.</p>
+    </li>
+    <li>
+      <h3>Carry it over</h3>
+      <p>Save the unsigned transaction to a USB key and take it to the offline computer.</p>
+    </li>
+    <li>
+      <h3>Sign</h3>
+      <p>The offline computer, which holds the private keys, shows you the recipients and fee to confirm, then signs it.</p>
+    </li>
+    <li>
+      <h3>Broadcast</h3>
+      <p>Bring the signed transaction back. Armory sends it to the network through your own Bitcoin Core node.</p>
+    </li>
+  </ol>
 
-      <h2><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h2>
+  <h2 class="visually-hidden">What else Armory does</h2>
+  <div class="facts">
+    <div>
+      <h3>Watching-only wallets</h3>
+      <p>Give an online computer a copy of the wallet without its keys, to see the balance and create new receiving addresses.</p>
+    </div>
+    <div>
+      <h3>Paper backups</h3>
+      <p>One paper backup, plus its SecurePrint code if you used one, restores every address the wallet generates. Imported keys need their own backup.</p>
+    </div>
+    <div>
+      <h3>Your own node</h3>
+      <p>Armory reads the blockchain from your Bitcoin Core node instead of a third-party server.</p>
+    </div>
+    <div>
+      <h3>Open source since 2011</h3>
+      <p>All the code is public on GitHub, and stable releases come with GPG-signed checksums.</p>
+    </div>
+  </div>
+</section>
 
-      <div class="entry">
-        {{ post.excerpt }}
-      </div>
+<section class="home-section" aria-labelledby="check">
+  <div class="check">
+    <div>
+      <h2 id="check">Check every download</h2>
+      <p>Armory releases since 0.94 are signed with goatpig's offline signing key. Compare this fingerprint, character by character, with the one GPG shows you:</p>
+      <code class="fingerprint"><span>745D 707F BA53 968B DF63</span> <span>AA8D 8C52 1176 4922 589A</span></code>
+      <p>Short key IDs such as <code>4922589A</code> can be forged. Always use the full fingerprint.</p>
+    </div>
+    <div class="check__actions">
+      <a class="btn btn--solid" href="{{ '/docs/verify' | relative_url }}">Follow the verification guide</a>
+      <a class="btn btn--outline" href="{{ '/security/' | relative_url }}">Report a security problem</a>
+    </div>
+  </div>
+</section>
 
-      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
-    </article>
-  {% endfor %}
-<hr>
-<h1>News</h1>
-<div class="posts">
-  {% for post in site.categories.news %}
-    <article class="post">
-
-      <h2><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a></h2>
-      <div class="entry">
-        {{ post.excerpt }}
-      </div>
-
-      <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
-    </article>
-  {% endfor %}
-</div>
+<section class="home-section" aria-labelledby="history">
+  <h2 id="history">Maintained since 2011</h2>
+  <p class="home-section__intro">Armory has been developed for {{ site.time | date: '%Y' | minus: 2011 }} years: by Alan Reiner and Armory Technologies until 2016, and since then as a community project led by goatpig.</p>
+  <ol class="timeline" role="list">
+    <li>
+      <span class="timeline__year">2011</span>
+      <p>Alan Reiner writes the first code of Armory.</p>
+    </li>
+    <li>
+      <span class="timeline__year">2014</span>
+      <p>Armory 0.92 adds multisignature lockboxes.</p>
+    </li>
+    <li>
+      <span class="timeline__year">2016</span>
+      <p><a href="{{ '/armory-future/' | relative_url }}">goatpig takes over</a> and Armory continues as a community open-source project.</p>
+    </li>
+    <li>
+      <span class="timeline__year">2017</span>
+      <p><a href="{{ '/0.96.2-release/' | relative_url }}">Armory 0.96.2</a> enables SegWit addresses on mainnet.</p>
+    </li>
+    <li>
+      <span class="timeline__year">2018</span>
+      <p><a href="{{ '/0.96.5-release/' | relative_url }}">Armory 0.96.5</a>, the current stable release, can send to bech32 addresses.</p>
+    </li>
+    <li class="timeline__now">
+      <span class="timeline__year">Today</span>
+      <p>Armory {{ site.data.project.next.version }} is in development, moving to Python 3 and a new wallet format. <a href="{{ site.data.project.next.link_url }}">See the roadmap</a>.</p>
+    </li>
+  </ol>
+  <p class="more-link"><a href="{{ '/releases/' | relative_url }}">All releases and news</a></p>
+</section>
