@@ -5,93 +5,44 @@ id: building
 permalink: /docs/building/
 ---
 
-## Building Armory From Source
+* Table of Contents
+{:toc}
 
-The latest stable version of Armory is available in precompiled, GPG-signed binaries for Windows, Ubuntu/Debian, and Mac. You can download them from the [Releases](/releases) page. Non-Debian-based Linux users will have to compile from source.
+Precompiled binaries, with a GPG-signed list of their SHA256 hashes, are available on the [Releases](/releases/) page. Building from source is useful if there is no binary for your platform, or if you want to audit exactly what you run.
 
-Compiling in Linux has proven to be quite easy. There are only a couple dependencies, and they’re all versionless, so there are no games you have to play with system library versions in order to get it to work.
+## Build instructions
 
-If you want to compile in Windows, the build process is far from simple, but extremely well-documented. Do it at your own risk! It involves downloading and manually installing about 7 packages, then using Microsoft Visual Studio to compile the C++ code and create a python-module. But it does work!
+Build instructions are kept in the source repository, next to the code they describe, so they stay in sync with it.
 
-### Verifying Source Code Authenticity
+**Armory 0.97** (upcoming release, developed on the `rc2_fixes` branch):
 
-The latest stable version or Armory is always be tagged in the git repository by its version number, and signed with the [Armory signing key (4922589A)](http://keyserver.ubuntu.com/pks/lookup?search=goatpig). For releases 0.93.3 and earlier, the [old Armory signing key (98832223)](http://keyserver.ubuntu.com/pks/lookup?search=Alan+Reiner) was used.
+ - [Linux](https://github.com/goatpig/BitcoinArmory/blob/rc2_fixes/build_instructions/linux/linux.md)
+ - [Windows](https://github.com/goatpig/BitcoinArmory/blob/rc2_fixes/build_instructions/windows/Windows_build_notes.md)
+ - macOS: there is no maintained guide for 0.97 yet. The [old macOS notes](https://github.com/goatpig/BitcoinArmory/blob/rc2_fixes/build_instructions/osx/macOS_build_notes.md) are kept for reference and are unlikely to work as-is.
 
-Here’s how you download the Armory signing key directly into your keyring from the Ubuntu keyserver, and then verify the signature using `git tag -v`:
+**Armory 0.96.x** (current stable release, `master` branch):
 
-~~~ bash
-$ gpg --recv-keys --keyserver keyserver.ubuntu.com 4922589A
-gpg: requesting key 4922589A from hkp server keyserver.ubuntu.com
-gpg: key 4922589A: public key "goatpig (Offline signing key for Armory releases) <moothecowlord@gmail.com>" imported
-$ git tag -v v0.96
-object a3d01aa72293f82c3ef3f1d29f93c83ad70099f4
-type commit
-tag v0.96
-tagger goatpig <moothecowlord@gmail.com> 1493581585 +0200
+ - [Linux](https://github.com/goatpig/BitcoinArmory/blob/master/linuxbuild/Linux_build_notes.md)
+ - [macOS](https://github.com/goatpig/BitcoinArmory/blob/master/osxbuild/macOS_build_notes.md)
+ - [Windows](https://github.com/goatpig/BitcoinArmory/blob/master/windowsbuild/Windows_build_notes.md)
 
-v0.96
-gpg: Signature made Sun 30 Apr 2017 03:46:25 PM EDT using RSA key ID 4922589A
-gpg: Good signature from "goatpig (Offline signing key for Armory releases) <moothecowlord@gmail.com>"
-~~~
- 
+## Verifying source code authenticity
 
-The above example is specifically for checking the tag for version "v0.96", which may not be the latest version by the time you are reading these instructions.  You can replace it with the latest version number posted on our website. All releases can be viewed on the [github releases page](https://github.com/goatpig/BitcoinArmory/releases). All major releases are accompanied by a signed tag.
-
-To checkout and build a specific version, simply use `git checkout [tag]` before the `make` command in the Ubuntu build instructions below.  For instance, to build version 0.96, you would simply use:
+Releases from 0.95.0 onwards are tagged in the git repository with a tag signed by the [Armory signing key](/docs/verify). First import the key by its full fingerprint:
 
 ~~~ bash
-$ $ git checkout v0.96
-Note: checking out 'v0.96'.
-...
-HEAD is now at a3d01aa... bump version
+gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 745D707FBA53968BDF63AA8D8C5211764922589A
 ~~~
 
-### Ubuntu Build Instructions
-
-In Ubuntu, open a terminal (Applications → Accessories → Terminal) and copy in each of the following lines one at a time (omit the dollar sign at the beginning of each line):
+Then clone the repository, check the tag you want to build and check it out:
 
 ~~~ bash
-$ sudo apt-get install git-core build-essential pyqt4-dev-tools swig libqtcore4 libqt4-dev python-qt4 python-dev python-twisted python-psutil automake autotools-dev libtool
-$ git clone git://github.com/goatpig/BitcoinArmory.git
-$ cd BitcoinArmory
-$ git submodule init
-$ git submodule update
-$ ./autogen.sh
-$ ./configure
-$ make
-$ python ArmoryQt.py
+git clone https://github.com/goatpig/BitcoinArmory.git
+cd BitcoinArmory
+git tag -v v0.96.5     # must report a Good signature from the Armory signing key
+git checkout v0.96.5
 ~~~
 
-Alternatively you can run "sudo make install" after building and it and it will install Armory onto your Ubuntu system, including but shortcuts in your the Applications --> Internet menu.
+Replace `v0.96.5` with the release you want to build (the 0.96.0 release is tagged `v0.96`). All releases are listed on the [GitHub releases page](https://github.com/goatpig/BitcoinArmory/releases).
 
-NOTE:  The above instructions do not check Armory's signatures the as shown in the previous section.  If you know the latest version (0.96 as of this writing), then you can add the verification checks before the "make" command, as seen below:
-
-~~~ bash
-$ sudo apt-get install git-core build-essential pyqt4-dev-tools swig libqtcore4 libqt4-dev python-qt4 python-dev python-twisted python-psutil
-$ git clone git://github.com/goatpig/BitcoinArmory.git
-$ cd BitcoinArmory
-$ git checkout v0.96  # put latest version number here
-$ git tag -v v0.96    # confirm signatures before continuing
-$ git submodule init
-$ git submodule update
-$ ./autogen.sh
-$ ./configure
-$ make
-$ python ArmoryQt.py
-~~~
-
-### Mac OS X Build Instructions
-
-To build Armory on Mac OS X, you can follow the directions found in the "osxbuild" directory in the Armory github project.  Specifically:
-
-<https://github.com/goatpig/BitcoinArmory/blob/master/osxbuild/OSX_build_notes.md>
-
-The instructions are plain-text and can be viewed directly from the Github webpage.
-
-### Windows Build Instructions
-
-Please note that it is a very involved process to build from source on Windows!  We have done our best to make this as straightforward as possible, but it may still require some patience and possibly some experience with MS Visual Studio.
-
-<https://github.com/goatpig/BitcoinArmory/blob/master/windowsbuild/Windows_build_notes.md>
-
-These instructions are also in plaintext and can be viewed directly from the Github webpage.
+Exceptions: the 0.94.0 and 0.94.1 tags and the `0.97-RC1` pre-release tag are not signed. Releases 0.93.3 and earlier were signed with the old Armory Technologies key (Alan Reiner, key ID `4AB16AEA98832223`).

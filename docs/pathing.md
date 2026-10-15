@@ -8,24 +8,28 @@ id: pathing
 * Table of Contents
 {:toc}
 
-The Armory stack uses 3 processes and 3 paths
+The Armory stack uses 3 processes (your Bitcoin node, ArmoryDB and the ArmoryQt GUI) and 3 paths.
+
+> This guide describes Armory 0.96.x. In Armory 0.97 a fourth process, CppBridge, sits between the GUI and ArmoryDB and starts ArmoryDB (and optionally your node) for you. The 3 paths are the same, but they are set in the Setup Manager that opens before the main window, and `armoryqt.conf` is no longer read. `armorydb.conf` is still read by ArmoryDB.
 
 ## Your Bitcoin node
 
-It needs a single path, its datadir, where it maintains blockchain data.
+It needs a single path, its datadir, where it maintains blockchain data. The block files live in the `blocks` subfolder of that datadir.
 
-This folder defaults to:
+The node datadir defaults to:
 
 ~~~
-"~/Bitcoin/blocks" on Windows (~ usually resolves to C:\Users\*username*\AppData\Roaming)
-"~/.bitcoin/blocks" on Linux
-"~/Library/Application Support/Bitcoin/blocks" on OSX
+"~/Bitcoin" on Windows (~ usually resolves to C:\Users\*username*\AppData\Roaming)
+"~/.bitcoin" on Linux
+"~/Library/Application Support/Bitcoin" on macOS
 ~~~
+
+Armory's `--satoshi-datadir` accepts either the datadir itself or its `blocks` folder.
 
 If you want to specify a custom datadir for your node, you'd run it with the -datadir command line (CLI) argument:
 
 ~~~
-BitcoinQt -datadir="/some/custom/path"
+bitcoin-qt -datadir="/some/custom/path"
 ~~~
 
 If instead of running BitcoinQt manually, you let Armory manage it for you, you have to give the custom blockchain datadir to Armory, using the --satoshi-datadir CLI arg:
@@ -62,15 +66,15 @@ Armory's DB process needs to know of 3 paths: the Armory datadir and the dbdir a
 
         ArmoryDB --dbdir="/some/custom/path"
 
-3. The node datadir is described in section 1. The CLI arg to set point ArmoryDB to a custom node datadir is `--satoshi-datadir`.
+3. The node datadir is described in section 1. The CLI arg to point ArmoryDB to a custom node datadir is `--satoshi-datadir`.
 
 ## ArmoryQt
 
-ArmoryQt is a bit special in that, as the GUI, it manages both your node and the db by default. Therefor, the amount of paths it needs to know about may vary:
+ArmoryQt is a bit special in that, as the GUI, it manages both your node and the db by default. Therefore, the amount of paths it needs to know about may vary:
 
 If ArmoryQt is running on its own, it only needs to know the Armory datadir.
 If ArmoryQt is controlling ArmoryDB for you (>99% of use cases), it needs to know of the node datadir and dbdir.
-If ArmoryQt is controlling your Bitcoin node (this is a default setting) it needs to know of the node datadir.
+If ArmoryQt is controlling your Bitcoin node (the default on Windows and Linux) it needs to know of the node datadir.
 
 Assuming you want to run Armory with a custom node datadir and custom dbdir, with node and db controlled by the client, your command line would look like this:
 
@@ -78,7 +82,7 @@ Assuming you want to run Armory with a custom node datadir and custom dbdir, wit
 
 ## Config files
 
-CLI args do not persists the process. If you want to run Armory with custom paths, you need to spawn it with the same CLI args every run. A way around this using the config files.
+CLI args do not persist between runs. If you want to run Armory with custom paths, you need to start it with the same CLI args every time. The config files are a way around this.
 
 There are 2 Armory config files:
 
@@ -90,9 +94,9 @@ Both reside in Armory's datadir. Any CLI args you can feed to either the GUI or 
 Taking the previous example, you could pass the same path arguments in armoryqt.conf. The content of the file would look like this:
 
     satoshi-datadir="/custom/blockchain/path"
-    dbdir="custom/database/path"
+    dbdir="/custom/database/path"
 
-The config file rules are as follow:
+The config file rules are as follows:
 
 - config files can take any valid CLI args for their respective process
 - CLI args provided to the process override args in the config file

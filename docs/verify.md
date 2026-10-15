@@ -5,26 +5,76 @@ permalink: /docs/verify
 id: verify
 ---
 
-The latest binaries and signed hash files can be found on the [releases](/releases) page or on the [github releases page](https://github.com/goatpig/BitcoinArmory/releases).
+* Table of Contents
+{:toc}
 
-To check the files, first import the [Armory signing key (4922589A)](http://keyserver.ubuntu.com/pks/lookup?search=goatpig). Then download the files. For each file, take its sha256 hash and then check that the hash matches the one in the signed hash file. Then verify the signed hash file.
+Only download Armory from the [GitHub releases page](https://github.com/goatpig/BitcoinArmory/releases); other websites offering "Armory" downloads are not run by the Armory developers. Always verify Armory binaries before you run them. Verification proves that the file you downloaded is exactly the one the Armory developers signed, and was not modified by a compromised mirror, a malicious link or a network attacker.
 
-For example, in Ubuntu, to verify the .dev file for 0.94.1, do the following.
+## 1. Get the Armory signing key
 
-~~~bash
-$ gpg --recv-keys --keyserver keyserver.ubuntu.com 4922589A
-gpg: requesting key 4922589A from hkp server keyserver.ubuntu.com
-gpg: key 4922589A: public key "goatpig (Offline signing key for Armory releases) <moothecowlord@gmail.com>" imported
-gpg: 3 marginal(s) needed, 1 complete(s) needed, PGP trust model
-gpg: depth: 0  valid:   2  signed:   0  trust: 0-, 0q, 0n, 0m, 0f, 2u
-gpg: Total number processed: 1
-gpg:               imported: 1  (RSA: 1)
-$ sha256sum -c sha256sum.asc.txt armory_0.94.1_amd64.deb 2>&1 | grep OK
-armory_0.94.1_amd64.deb: OK
-$ gpg --verify sha256sum.asc.txt 
-gpg: Signature made Sun 22 Nov 2015 01:34:46 AM EST using RSA key ID 4922589A
-gpg: Good signature from "goatpig (Offline signing key for Armory releases) <moothecowlord@gmail.com>"
-gpg: WARNING: This key is not certified with a trusted signature!
-gpg:          There is no indication that the signature belongs to the owner.
-Primary key fingerprint: 745D 707F BA53 968B DF63  AA8D 8C52 1176 4922 589A
+Armory releases are signed with goatpig's offline signing key:
+
 ~~~
+goatpig (Offline signing key for Armory releases) <moothecowlord@gmail.com>
+Fingerprint: 745D 707F BA53 968B DF63  AA8D 8C52 1176 4922 589A
+~~~
+
+Import it **by its full fingerprint** (short 8-character key IDs such as `4922589A` can be forged and should not be relied on):
+
+~~~ bash
+gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 745D707FBA53968BDF63AA8D8C5211764922589A
+~~~
+
+The same key is also published in the source repository at [`PublicKeys/goatpig-signing-key.asc`](https://github.com/goatpig/BitcoinArmory/blob/master/PublicKeys/goatpig-signing-key.asc), so you can cross-check it from a second source:
+
+~~~ bash
+curl -sSLO https://raw.githubusercontent.com/goatpig/BitcoinArmory/master/PublicKeys/goatpig-signing-key.asc
+gpg --show-keys --with-fingerprint goatpig-signing-key.asc
+~~~
+
+Make sure the fingerprint printed by GPG matches the one above exactly.
+
+## 2. Download the release files
+
+From the [GitHub releases page](https://github.com/goatpig/BitcoinArmory/releases), download:
+
+ - the installer or package for your platform, and
+ - the GPG-signed SHA256 hash file published with the same release: `sha256sum.txt.asc` for 0.96.5 (the name varies between older releases, for example `sha256sum.asc` for 0.96.4).
+
+In the commands below, replace `SIGNED_HASH_FILE` with the name of that file.
+
+## 3. Check the signature of the hash file
+
+~~~ bash
+gpg --verify SIGNED_HASH_FILE
+~~~
+
+You must see `Good signature from "goatpig (Offline signing key for Armory releases)"` and the primary key fingerprint `745D 707F BA53 968B DF63  AA8D 8C52 1176 4922 589A`.
+
+The warning `This key is not certified with a trusted signature` only means that you have not personally certified the key in your keyring; it is expected. A `BAD signature` means the file must not be trusted.
+
+## 4. Check the hash of your download
+
+On Linux:
+
+~~~ bash
+sha256sum --ignore-missing -c SIGNED_HASH_FILE
+~~~
+
+On macOS, print the hash of your download and compare it with the matching line in the signed hash file (`shasum -c` does not accept the format of Armory's hash files):
+
+~~~ bash
+shasum -a 256 DOWNLOADED_FILE
+~~~
+
+On Windows (PowerShell), do the same:
+
+~~~ powershell
+Get-FileHash .\DOWNLOADED_FILE -Algorithm SHA256
+~~~
+
+On Linux the file you downloaded must be reported as `OK` (you can ignore warnings about improperly formatted lines); on macOS and Windows the hashes must match exactly. If anything does not match, delete the file and do not run it.
+
+## Verifying the source code
+
+Most releases are also tagged in the git repository with a signed tag. See [Building From Source](/docs/building/) for how to check a tag with `git tag -v`, and for the older releases signed with a different key.
