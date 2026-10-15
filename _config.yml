@@ -6,7 +6,16 @@
 name: Bitcoin Armory
 
 # Short bio or description (displayed in the header)
-description: Python-based fully-featured Bitcoin Wallet Software
+tagline: Open-source Bitcoin wallet
+description: "Open-source Bitcoin wallet: cold storage, offline signing, runs on your own node."
+
+# Default image used when a page is shared on X, Telegram, Discord, etc.
+# A page or post can override it with `image:` (and `image_alt:`) in its front matter.
+social_image: /images/social/og-default.png
+social_image_alt: "Armory - open-source Bitcoin wallet. Cold storage, offline signing, runs on your own node."
+
+# X (Twitter) handle without the @, used for the twitter:site card tag. Leave empty to omit.
+twitter_username:
 
 # URL of your avatar or profile pic (you could use your GitHub profile pic)
 avatar: https://raw.githubusercontent.com/goatpig/BitcoinArmory/master/img/armory_icon_fullres.png
