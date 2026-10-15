@@ -5,7 +5,9 @@ category: news
 date: 2017-09-22 1:00:00 -0400
 ---
 
-This vulnerability has been fixed in Armory 0.96.3 and later. **Consider all wallets that use fragmented backups to be compromised and migrate all funds to a new wallet. If you want to use fragmented backups, update to [Armory 0.96.3](/0.96.3-release) immediately.**
+This vulnerability has been fixed in Armory 0.96.3 and later. **Consider all wallets that use fragmented backups to be compromised and migrate all funds to a new wallet. If you want to use fragmented backups, update to [Armory 0.96.3](/0.96.3-release/) immediately.**
+
+*Note: the fix is included in 0.96.3 and every later release. Fragments made with earlier versions must still be treated as compromised.*
 
 
 ## The story
@@ -74,7 +76,7 @@ Note that since the coefficients were derived from each other, the second mistak
 The second mistake was caught and fixed eventually. I was not involved with anything regarding cryptography and security in Armory at the time, therefor I have no recollection of the event. I expect there was a write up of the issue and people were told to cycle wallets, but I can't remember any of it.
 
 You can look at the code in its original form here:
-https://github.com/etotheipi/BitcoinArmory/commit/80e373a#diff-27fe88d2c6032fecb93912a17d72081bR1615
+<https://github.com/etotheipi/BitcoinArmory/commit/80e373a#diff-27fe88d2c6032fecb93912a17d72081bR1615>
 
 ### The second version
 
@@ -86,7 +88,7 @@ One way to look at it is that this implementation introduces a deterministic rel
 
 Here is the commit for the second version:
 
-https://github.com/etotheipi/BitcoinArmory/commit/0824b632600116bd6395cec939fa6fd398efeb19#diff-27fe88d2c6032fecb93912a17d72081bR1915
+<https://github.com/etotheipi/BitcoinArmory/commit/0824b632600116bd6395cec939fa6fd398efeb19#diff-27fe88d2c6032fecb93912a17d72081bR1915>
 
 ## Affected versions
 
@@ -112,8 +114,8 @@ Therefore, it is without hesitation that the faulty feature was undone, and the 
 
 The changes can be seen here:
 
-https://github.com/goatpig/BitcoinArmory/commit/94d2a7556d25cf788da639d81a7162694982f6b7
-https://github.com/goatpig/BitcoinArmory/commit/7bd9887891ac88e2e49954ef034bedef88f23eaf
+<https://github.com/goatpig/BitcoinArmory/commit/94d2a7556d25cf788da639d81a7162694982f6b7>
+<https://github.com/goatpig/BitcoinArmory/commit/7bd9887891ac88e2e49954ef034bedef88f23eaf>
 
 ## GUI changes
 
@@ -129,7 +131,7 @@ I don't expect an attacker can snatch a single fragment and reveal the secret th
 
 Since we're talking 32 byte integers, breaking the scheme isn't trivial, but it has certainly been weakened to a state that is difficult to precisely assess. Therefor, to remain on the conservative side, my recommendation is as follows:
 
-If you created a fragment backup of your wallet, [b]consider that wallet compromised[/b]. [u]Create a new wallet and sweep the funds from the compromised wallet to the new one[/u]. You can redo your fragmented backup scheme on the new wallet provided you use Armory 0.96.3 and newer.
+If you created a fragment backup of your wallet, **consider that wallet compromised**. <u>Create a new wallet and sweep the funds from the compromised wallet to the new one</u>. You can redo your fragmented backup scheme on the new wallet provided you use Armory 0.96.3 and newer.
 
 If you do not use fragmented backups, you have nothing to do.
 
@@ -138,4 +140,4 @@ If you do not use fragmented backups, you have nothing to do.
 Special thanks to Gregory Maxwell for finding the vulnerability and helping with the review of the fix.
 
 
-Adapted from https://bitcointalk.org/index.php?topic=2199659.msg22115643#msg22115643
+Adapted from <https://bitcointalk.org/index.php?topic=2199659.msg22115643#msg22115643>
