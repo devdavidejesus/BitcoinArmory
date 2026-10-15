@@ -5,33 +5,44 @@ permalink: /about/
 id: about
 ---
 
-Armory is a full-featured Bitcoin client, offering a dozen innovative features not found in any other client software! Manage multiple wallets (deterministic and watching-only), print paper backups that work forever, import or sweep private keys, and keep your savings in a computer that never touches the internet, while still being able to manage incoming payments, and create outgoing payments with the help of a USB key.
+Armory is an open-source Bitcoin wallet focused on security and self-custody. It lets you manage multiple wallets (including watching-only wallets), print paper backups, import or sweep private keys, and keep your savings on a computer that never touches the internet while still being able to monitor incoming payments and create outgoing transactions with the help of a USB key.
 
-**Armory has no independent networking components built in.** Instead, it relies on on the Satoshi client to securely connect to peers, validate blockchain data, and broadcast transactions for us. Although it was initially planned to cut the umbilical cord to the Satoshi client and implement independent networking, it has turned out to be an inconvenience worth having. Reimplementing all the networking code would be fraught with bugs, security holes, and possible blockchain forking. The reliance on Bitcoin-Qt right now is actually making Armory more secure!
+**Armory has no independent networking components built in.** Instead, it relies on Bitcoin Core to connect to peers, validate blockchain data and broadcast transactions. Reimplementing the networking and consensus code would be fraught with bugs, security holes and possible chain splits; relying on Bitcoin Core makes Armory more secure.
+
+Armory was created by Alan Reiner in 2011 and later developed by Armory Technologies, Inc. It has since been maintained as a community open-source project led by goatpig, whose fork of the original repository dates from February 2016.
 
 Credits
 -------
-**Open Source Project:** 
+**Open Source Project:**
 
- - Farhod Fathpour (@goatpig) - Open Source Project Lead 
+ - Farhod Fathpour (@goatpig) - Open Source Project Lead
+ - All [contributors on GitHub](https://github.com/goatpig/BitcoinArmory/graphs/contributors)
 
-[Current Source code repository](https://github.com/goatpig/BitcoinArmory)
+[Current source code repository](https://github.com/goatpig/BitcoinArmory)
 
-**Armory Technologies Incorporated (No longer participating):** 
+**Armory Technologies, Inc. (no longer participating):**
 
- - Alan Reiner (@etotheipi) - Project Creator and Former Project Lead 
- - Andy Ofiesh (@AndyOfiesh) - Former Lead Developer 
- - Farhod Fathpour (@goatpig) - Former Developer 
+ - Alan Reiner (@etotheipi) - Project Creator and Former Project Lead
+ - Andy Ofiesh (@AndyOfiesh) - Former Lead Developer
+ - Farhod Fathpour (@goatpig) - Former Developer
  - Charles Samuels (@njaard) - Former Developer
  - Douglas Roark (@droark) - Former Developer
  - Jimmy Song (@jimmysong) - Former Developer
 
-[Original Source code repository](https://github.com/etotheipi/BitcoinArmory)
+[Original source code repository](https://github.com/etotheipi/BitcoinArmory)
 
-**The following libraries:**
+**Built with:**
 
- - [Crypto++](https://www.cryptopp.com/)
- - [SWIG](http://www.swig.org/)
- - [Python](https://www.python.org/)
- - [Python Twisted](https://twistedmatrix.com/)
- - [PyQt](https://wiki.python.org/moin/PyQt)
+ - [Bitcoin Core](https://bitcoincore.org/)
+ - [Python 3](https://www.python.org/) with [PySide](https://doc.qt.io/qtforpython/) and [QtPy](https://github.com/spyder-ide/qtpy) (Qt for Python)
+ - [LMDB](https://www.symas.com/lmdb)
+ - [libwebsockets](https://libwebsockets.org/)
+ - [Cap'n Proto](https://capnproto.org/) and [pycapnp](https://github.com/capnproto/pycapnp)
+ - [libbtc](https://github.com/libbtc/libbtc), including [libsecp256k1](https://github.com/bitcoin-core/secp256k1)
+ - ChaCha20-Poly1305, to encrypt the connections between Armory's components
+
+This is the stack of the upcoming 0.97 release. The 0.96.x releases were built with Crypto++, SWIG, Python 2, PyQt4 and Twisted.
+
+## License
+
+Armory is distributed partially under the GNU Affero General Public License (AGPL v3) and partially under the MIT License. See the [LICENSE file](https://github.com/goatpig/BitcoinArmory/blob/master/LICENSE).

@@ -9,7 +9,7 @@ Contributing to Armory can be done through submitting code via Pull Requests, re
 
 ### Contribute and Review code
 
-Fork the the source code, typically the [dev branch](https://github.com/goatpig/BitcoinArmory/tree/dev), to a topic branch in your own repo. Write your patch and then submit a Pull Request. The code will be reviewed by other developers and the merged in by the project lead.
+Fork the repository and base your patch on the branch currently used for development: for the 0.97 cycle, pull requests target [`rc2_fixes`](https://github.com/goatpig/BitcoinArmory/tree/rc2_fixes) (`dev` and `master` hold the previous development and stable lines). Work on a topic branch in your own fork, then submit a Pull Request. The code will be reviewed by other developers and then merged in by the project lead.
 
 To review code, simply choose a Pull Request to review and read over the changes made by the PR. Leave comments if there is anything that you think should be different.
 
@@ -27,8 +27,8 @@ The project utilizes the issue tracker feature of github. If you find a bug in t
 
 ### Translations
 
-Armory and the Armory Website both will accept translations through Transifex. The Armory software translations can be contributed to the [Armory Software Transifex](https://transifex.com/bitcoin-armory). Website translations will be available soon.
+Armory's interface translations live in the [`lang/`](https://github.com/goatpig/BitcoinArmory/tree/rc2_fixes/lang) folder as Qt Linguist files: Danish, German, Greek, Spanish, French, Hebrew, Croatian, Indonesian, Russian and Swedish, at very different levels of completeness. Translations are made on the [Bitcoin Armory Software project on Transifex](https://explore.transifex.com/bitcoin-armory/bitcoin-armory-software/). The files in the repository were last synced from Transifex in 2017, so the strings there are still those of the 0.96 interface; open an issue before starting a translation so the strings can be updated for 0.97 first. The website is English-only.
 
 ### Contributors
 
-Thank you to the following who have contributed to this project and the website
+Since 2011, Armory has received code from dozens of contributors, starting with Alan Reiner and the Armory Technologies team. See the [contributors page on GitHub](https://github.com/goatpig/BitcoinArmory/graphs/contributors) (it only counts the default branch and commits linked to a GitHub account), or run `git shortlog -sn` on the branch you are interested in for the complete history.

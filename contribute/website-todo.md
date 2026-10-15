@@ -5,7 +5,10 @@ id: website-todo
 permalink: /contribute/website-todo/
 ---
 
-Things that need to be done for the website are listed here. Feel free to choose one and begin working on it, just check that no one else is working on the same thing.
+The website source lives on the [`gh-pages` branch](https://github.com/goatpig/BitcoinArmory/tree/gh-pages) of the Armory repository. Things that still need to be done:
 
- - Make all strings to something compatible with Transifex translations
- - Add an FAQ/Troubleshooting guide which links to threads on the forum that fix the common issues
+ - Make the website strings translatable, so the site can be translated on Transifex like the application
+ - Add a Troubleshooting section to the [FAQ](/docs/faq) that links to the forum threads that fix common issues
+ - Publish release notes for Armory 0.97 when it is released
+
+Feel free to choose one and begin working on it, just check that no one else is working on the same thing.
