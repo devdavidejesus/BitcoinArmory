@@ -2,7 +2,7 @@
 layout: post
 title: Armory and Hard Forks
 category: news
-date: 2017-03-26 23:30:00 -0500
+date: 2017-03-26 12:00:00 +0000
 ---
 
 Recently there has been much debate in the Bitcoin community regarding Segregated Witness, hard forks and soft forks, and the usage of alternative node and mining software. The Armory developers (goatpig, droark, and achow101) support Segregated Witness as is in its current form, and also support Bitcoin Core. The Armory developers also oppose hard forks that may attack the original chain. Should a long-lasting hard fork that does not attack the original chain exist, we would consider implementing functionality required to allow Armory users to transact on that chain only if absolutely necessary (e.g. the transaction format for that chain is changed). Depending on how drastic the changes are, we may implement the change fully, implement a migration tool to another wallet that supports the change, or simply not support the fork at all.
