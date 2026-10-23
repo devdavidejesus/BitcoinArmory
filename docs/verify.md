@@ -12,6 +12,8 @@ Only download Armory from the [GitHub releases page](https://github.com/goatpig/
 
 ## 1. Get the Armory signing key
 
+You need GnuPG: it is included in most Linux distributions; on macOS use [GPG Suite](https://gpgtools.org/) or `brew install gnupg`; on Windows use [Gpg4win](https://www.gpg4win.org/).
+
 Armory releases are signed with goatpig's offline signing key:
 
 ~~~
@@ -55,25 +57,50 @@ The warning `This key is not certified with a trusted signature` only means that
 
 ## 4. Check the hash of your download
 
-On Linux:
+Pick your operating system:
+
+<div class="os-tabs" role="group" aria-label="Choose your operating system">
+<input type="radio" name="os" id="os-linux" checked>
+<label for="os-linux">Linux</label>
+<input type="radio" name="os" id="os-macos">
+<label for="os-macos">macOS</label>
+<input type="radio" name="os" id="os-windows">
+<label for="os-windows">Windows</label>
+
+<div class="os-tabs__panel os-tabs__panel--linux" markdown="1">
 
 ~~~ bash
 sha256sum --ignore-missing -c SIGNED_HASH_FILE
 ~~~
 
-On macOS, print the hash of your download and compare it with the matching line in the signed hash file (`shasum -c` does not accept the format of Armory's hash files):
+The file you downloaded must be reported as `OK`. You can ignore warnings about improperly formatted lines.
+
+</div>
+<div class="os-tabs__panel os-tabs__panel--macos" markdown="1">
+
+Print the hash of your download and compare it with the matching line in the signed hash file:
 
 ~~~ bash
 shasum -a 256 DOWNLOADED_FILE
 ~~~
 
-On Windows (PowerShell), do the same:
+The two hashes must match exactly.
+
+</div>
+<div class="os-tabs__panel os-tabs__panel--windows" markdown="1">
+
+In PowerShell, print the hash of your download and compare it with the matching line in the signed hash file:
 
 ~~~ powershell
 Get-FileHash .\DOWNLOADED_FILE -Algorithm SHA256
 ~~~
 
-On Linux the file you downloaded must be reported as `OK` (you can ignore warnings about improperly formatted lines); on macOS and Windows the hashes must match exactly. If anything does not match, delete the file and do not run it.
+The two hashes must be the same. PowerShell prints letters in upper case and the hash file uses lower case; that difference does not matter.
+
+</div>
+</div>
+
+If anything does not match, delete the file and do not run it.
 
 ## Verifying the source code
 
