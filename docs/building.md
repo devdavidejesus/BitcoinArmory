@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Building Armory From Source
+title: Build Armory from source
+description: "How to build Armory 0.97 and 0.96.x from source on Linux and Windows (and macOS for 0.96.x), and how to check the signed git tags."
 id: building
 permalink: /docs/building/
 ---

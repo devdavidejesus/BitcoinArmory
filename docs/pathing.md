@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Armory Pathing
+title: Armory pathing
+description: "Where Armory keeps its wallets, settings and databases, and how to point it at your Bitcoin Core data directory."
 permalink: /docs/pathing
 id: pathing
 ---

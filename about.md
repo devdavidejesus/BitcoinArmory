@@ -1,6 +1,7 @@
 ---
 layout: page
 title: About
+description: "About Armory, the open-source Bitcoin wallet created in 2011: its history, its developers and the technology behind it."
 permalink: /about/
 id: about
 ---

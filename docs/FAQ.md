@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Frequently Asked Questions
+title: Frequently asked questions
+description: "Answers about Armory: backups, supported BIPs, Bitcoin Core 28 and xor.dat, full nodes, command-line options and more."
 permalink: /docs/faq
 id: faq
 ---

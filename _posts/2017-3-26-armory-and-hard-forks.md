@@ -13,7 +13,7 @@ Because transactions for both the forked and the original networks will primaril
 
 Should a chain fork occur, more up-to-date information about what Armory users can do will be posted on the [Armory forums](https://bitcointalk.org/index.php?board=97.0) and on this website.
 
-### The setup
+## The setup
 
 The Armory database engine builds off of on-disk blockchain data and does not enforce consensus rules. In other words, any client that uses the same block data format and magic word as Bitcoin Core is compatible with Armory. From your perspective, running Armory against the BU chain will show you your BU balance, and vice versa. 
 
@@ -26,7 +26,7 @@ To summarize, you need:
 
 You can swap between the two by pointing Armory to the relevant pair of block data folder and database folder by using the `--satoshi-datadir` and `--dbdir` command line options respectively.
 
-### Avoiding Transaction Replay
+## Avoiding Transaction Replay
 
 A transaction replay attack is where one transaction can end up confirmed in both blockchains, thus resulting in coins on one chain being spent when you did not want those to be spent. This can happen either accidentally or intentionally due to someone broadcasting your transaction on both networks.
 

@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Verifying Binaries
+title: Verify a download
+description: "How to verify an Armory download: import goatpig's signing key by its full fingerprint, check the signed hash file and compare checksums."
 permalink: /docs/verify
 id: verify
 ---
@@ -104,4 +105,4 @@ If anything does not match, delete the file and do not run it.
 
 ## Verifying the source code
 
-Most releases are also tagged in the git repository with a signed tag. See [Building From Source](/docs/building/) for how to check a tag with `git tag -v`, and for the older releases signed with a different key.
+Most releases are also tagged in the git repository with a signed tag. See [Build from source](/docs/building/) for how to check a tag with `git tag -v`, and for the older releases signed with a different key.

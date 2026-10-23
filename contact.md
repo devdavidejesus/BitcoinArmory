@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Contact Us
+title: Contact
+description: "How to reach the Armory developers: bug reports on GitHub, support on Bitcointalk, and where to report security problems."
 permalink: /contact/
 id: contact
 ---

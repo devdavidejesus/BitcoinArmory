@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Website To-Do List
+title: Website to-do list
+description: "Open tasks for the btcarmory.com website."
 id: website-todo
 permalink: /contribute/website-todo/
 ---

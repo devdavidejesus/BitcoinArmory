@@ -23,7 +23,7 @@ goatpig (Offline signing key for Armory releases) <moothecowlord@gmail.com>
 Fingerprint: 745D 707F BA53 968B DF63  AA8D 8C52 1176 4922 589A
 ~~~
 
-The key is also published in the source repository at [`PublicKeys/goatpig-signing-key.asc`](https://github.com/goatpig/BitcoinArmory/blob/master/PublicKeys/goatpig-signing-key.asc). Releases 0.93.3 and earlier were signed with the old Armory Technologies key. The [verification guide](/docs/verify) shows how to check a download step by step, and [Building From Source](/docs/building/) shows how to check a signed git tag.
+The key is also published in the source repository at [`PublicKeys/goatpig-signing-key.asc`](https://github.com/goatpig/BitcoinArmory/blob/master/PublicKeys/goatpig-signing-key.asc). Releases 0.93.3 and earlier were signed with the old Armory Technologies key. The [verification guide](/docs/verify) shows how to check a download step by step, and [Build from source](/docs/building/) shows how to check a signed git tag.
 
 ## Past security notices
 

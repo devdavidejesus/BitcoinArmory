@@ -1,6 +1,7 @@
 ---
 layout: page
-title: Armory To-Do List
+title: Armory to-do list
+description: "Open tasks for Armory development, with links to the issue tracker and the 0.97 project board."
 id: armory-todo
 permalink: /contribute/armory-todo/
 ---

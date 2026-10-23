@@ -1,8 +1,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0d1626" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Only this site's own files may load: no third-party scripts, styles, fonts or trackers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    {% if page.sitemap == false %}<meta name="robots" content="noindex" />{% endif %}
+    <link rel="preload" href="{{ '/fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />
+    {% if page.hero or content contains '<code' %}<link rel="preload" href="{{ '/fonts/atkinson-hyperlegible-mono-latin-wght-normal.woff2' | relative_url }}" as="font" type="font/woff2" crossorigin />{% endif %}
 
-    {% if page.title %}
+    {% if page.title and page.title_is_full %}
+      {% assign meta_title = page.title %}
+    {% elsif page.title %}
       {% assign meta_title = page.title | append: " – " | append: site.name %}
     {% else %}
       {% assign meta_title = site.name | append: " – " | append: site.tagline %}
@@ -10,7 +19,7 @@
     {% if page.description %}
       {% assign meta_desc = page.description %}
     {% elsif page.excerpt %}
-      {% assign meta_desc = page.excerpt | strip_html | normalize_whitespace | truncate: 200 %}
+      {% assign meta_desc = page.excerpt | strip_html | normalize_whitespace | truncate: 155 %}
     {% else %}
       {% assign meta_desc = site.description %}
     {% endif %}
@@ -19,7 +28,7 @@
 
     <meta name="description" content="{{ meta_desc | escape }}" />
     <meta name="author" content="{{ site.name }}" />
-    <link rel="canonical" href="{{ meta_url }}" />
+    {% unless page.sitemap == false %}<link rel="canonical" href="{{ meta_url }}" />{% endunless %}
 
     <!-- Open Graph (X, Telegram, Discord, Signal, Slack, Mastodon...) -->
     <meta property="og:site_name" content="{{ site.name }}" />
@@ -38,6 +47,42 @@
     <meta name="twitter:description" content="{{ meta_desc | escape }}" />
     <meta name="twitter:image" content="{{ meta_image | absolute_url }}" />
     <meta name="twitter:image:alt" content="{{ page.image_alt | default: site.social_image_alt | escape }}" />
+
+    <!-- Structured data for search engines (a data block, not a script that runs) -->
+    {% if page.url == "/" %}
+    {% assign latest_release = site.categories.releases | first %}
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "{{ '/' | absolute_url }}#website",
+          "url": "{{ '/' | absolute_url }}",
+          "name": "{{ site.name }}",
+          "description": {{ site.description | jsonify }}
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "{{ '/' | absolute_url }}#software",
+          "name": "Armory",
+          "alternateName": "Bitcoin Armory",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Windows, macOS, Linux",
+          "description": {{ site.description | jsonify }},
+          "url": "{{ '/' | absolute_url }}",
+          "downloadUrl": "https://github.com/goatpig/BitcoinArmory/releases",
+          {% if latest_release %}"softwareVersion": {{ latest_release.title | remove: "Armory " | remove: " Released" | jsonify }},{% endif %}
+          "license": "https://github.com/goatpig/BitcoinArmory/blob/master/LICENSE",
+          "isAccessibleForFree": true,
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "sameAs": ["https://github.com/goatpig/BitcoinArmory"{% if site.twitter_username %}, "https://x.com/{{ site.twitter_username }}"{% endif %}],
+          "image": "{{ site.social_image | absolute_url }}"
+        }
+      ]
+    }
+    </script>
+    {% endif %}
 
     <link rel="icon" href="{{ '/favicon.ico' | relative_url }}" sizes="32x32" />
     <link rel="icon" type="image/png" href="{{ '/images/icon-192.png' | relative_url }}" sizes="192x192" />
