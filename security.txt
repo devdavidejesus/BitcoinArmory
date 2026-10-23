@@ -1,0 +1,12 @@
+---
+layout: null
+permalink: /.well-known/security.txt
+sitemap: false
+---
+# Armory (https://btcarmory.com)
+# Please report security problems privately. Do not open public issues.
+Contact: https://github.com/goatpig/BitcoinArmory/security/advisories/new
+Expires: {{ site.time | date: '%s' | plus: 31449600 | date: '%Y-%m-%dT%H:%M:%SZ' }}
+Policy: {{ '/security/' | absolute_url }}
+Canonical: {{ '/.well-known/security.txt' | absolute_url }}
+Preferred-Languages: en
