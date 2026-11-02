@@ -36,6 +36,9 @@ class DlgUniversalRestoreSelect(ArmoryDialog):
       self.rdoDigital = QtWidgets.QRadioButton(self.tr('Import digital backup or watching-only wallet'))
       self.rdoWOData = QtWidgets.QRadioButton(self.tr('Import watching-only wallet data'))
       self.chkTest = QtWidgets.QCheckBox(self.tr('This is a test recovery to make sure my backup works'))
+      for rdo in [self.rdoFragged, self.rdoWOData]:
+         rdo.setEnabled(False)
+         rdo.setToolTip(self.tr('Not available yet in 0.97'))
       btngrp = QtWidgets.QButtonGroup(self)
       btngrp.addButton(self.rdoSingle)
       btngrp.addButton(self.rdoFragged)

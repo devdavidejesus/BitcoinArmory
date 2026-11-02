@@ -765,6 +765,13 @@ class WalletBackupFrame(ArmoryFrame):
       self.optDigitalBackupTop.setFont(GETFONT('Var', bold=True))
       self.optIndivKeyListTop.setFont(GETFONT('Var', bold=True))
 
+      # Fragmented and digital backups don't work with 0.97 wallets yet,
+      # they stay visible but disabled
+      for opt in [self.optPaperBackupFrag, self.optDigitalBackupTop,
+            self.optDigitalBackupPlain, self.optDigitalBackupCrypt]:
+         opt.setEnabled(False)
+         opt.setToolTip(self.tr('Not available yet with 0.97 wallets'))
+
       # I need to be able to unset the sub-options when they become disabled
       self.optPaperBackupNONE = QtWidgets.QRadioButton('')
       self.optDigitalBackupNONE = QtWidgets.QRadioButton('')
@@ -1057,7 +1064,6 @@ class WalletBackupFrame(ArmoryFrame):
    def optionClicked(self):
       if self.optPaperBackupTop.isChecked():
          self.optPaperBackupOne.setEnabled(True)
-         self.optPaperBackupFrag.setEnabled(True)
          self.optDigitalBackupPlain.setEnabled(False)
          self.optDigitalBackupCrypt.setEnabled(False)
          self.optDigitalBackupPlain.setChecked(False)
@@ -1147,6 +1153,8 @@ class WizardCreateWatchingOnlyWalletFrame(ArmoryFrame):
          'upper-right corner'))
       lbtnForkWlt = QtWidgets.QPushButton('Create Watching-Only Copy')
       lbtnForkWlt.clicked.connect(self.forkOnlineWallet)
+      lbtnForkWlt.setEnabled(False)
+      lbtnForkWlt.setToolTip(self.tr('Not available yet with 0.97 wallets'))
       layout = QtWidgets.QVBoxLayout()
       layout.addWidget(summaryText)
       layout.addWidget(lbtnForkWlt)

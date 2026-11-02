@@ -44,7 +44,6 @@ from qtdialogs.DlgBackupCenter import DlgBackupCenter, DlgSimpleBackup, \
 from qtdialogs.DlgAddressInfo import DlgAddressInfo
 from qtdialogs.DlgChangePassphrase import DlgChangePassphrase
 from qtdialogs.DlgRemoveWallet import DlgRemoveWallet
-from qtdialogs.DlgExportWO import DlgExpWOWltData
 
 ################################################################################
 class DlgWalletDetails(ArmoryDialog):
@@ -596,8 +595,9 @@ class DlgWalletDetails(ArmoryDialog):
 
    #############################################################################
    def execExpWOCopy(self):
-      dlg = DlgExpWOWltData(self.wlt, self, self.main)
-      dlg.exec_()
+      QtWidgets.QMessageBox.information(self, self.tr('Not Available'),
+         self.tr('Exporting a watching-only copy is not available yet with '
+            '0.97 wallets.'), QtWidgets.QMessageBox.Ok)
 
    #############################################################################
    def setWltDetailsFrame(self):

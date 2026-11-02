@@ -153,6 +153,12 @@ class DlgRemoveWallet(ArmoryDialog):
             'is pointless'))
          self.radioWatch.setEnabled(False)
          self.chkPrintBackup.setEnabled(False)
+      else:
+         ttipWatch = createToolTipWidget(self.tr(
+            'Not available yet with 0.97 wallets'))
+         self.radioWatch.setToolTip(self.tr(
+            'Not available yet with 0.97 wallets'))
+         self.radioWatch.setEnabled(False)
 
       self.frm = []
       rdoFrm = QtWidgets.QFrame()
