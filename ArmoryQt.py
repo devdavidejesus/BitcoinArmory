@@ -63,6 +63,7 @@ from armoryengine.BDM import TheBDM, \
    NEW_ZC_ACTION, NEW_BLOCK_ACTION, \
    REFRESH_ACTION, WARNING_ACTION, WARNING_ACTION, SCAN_ACTION, \
    NODESTATUS_UPDATE, BDM_SCAN_PROGRESS, BDV_ERROR, BDV_DISCONNECTED, \
+   BDV_DROPPED, \
    INIT_DB_CONNECTED, INIT_WALLETS_REGISTERED, INIT_DB_READY, \
    BDMPhase_DBHeaders, BDMPhase_OrganizingChain, \
    BDMPhase_BlockHeaders, BDMPhase_BlockData, BDMPhase_Rescan, \
@@ -4615,6 +4616,9 @@ class ArmoryMainWindow(QtWidgets.QMainWindow):
          self.setDashboardDetails()
          self.updateStatusBarText()
 
+      elif action == BDV_DROPPED:
+         self.handleBdvDropped()
+
       #setup notifs
       elif action == INIT_DB_CONNECTED:
          self.registerWalletsWithService()
@@ -4888,8 +4892,55 @@ class ArmoryMainWindow(QtWidgets.QMainWindow):
       TheBridge.dbSetup.beginDbSession()
 
    #############################################################################
+   def handleBdvDropped(self):
+      '''
+      The bridge dropped its db connection after failing to update the
+      wallets state. Reset the setup flags so that a new connection registers
+      the wallets and starts a db session again, then let the user pick
+      between going through the setup manager again and staying offline.
+      '''
+      LOGWARN('the bridge dropped its db connection')
+      if self.isShuttingDown:
+         return
+
+      self.walletsRegistered = False
+      self.blockchainSetupComplete = False
+      self.dbConnectionEstablishedBySetup = False
+      self.switchNetworkMode(NETWORKMODE.Offline)
+      self.setDashboardDetails()
+      self.updateStatusBarText()
+
+      reconnect = MsgBoxCustom(MSGBOX.Question,
+         self.tr('Connection to ArmoryDB Dropped'), self.tr(
+         'Armory failed to update your wallets from ArmoryDB and dropped '
+         'its connection to the database. Balances and transaction history '
+         'will not update until Armory is connected again.'
+         '<br><br>'
+         'You can go through the connection setup again, or stay offline. '
+         'Offline, your wallets remain available for offline operations, '
+         'such as creating receiving addresses or signing offline '
+         'transactions. To connect again later, restart Armory.'),
+         yesStr=self.tr('Reconnect'), noStr=self.tr('Stay Offline'))
+      if not reconnect or self.isShuttingDown:
+         return
+
+      #the bridge cannot reattach to an ArmoryDB instance it automated, shut
+      #it down so that the setup manager can start a new one
+      def onCleanup(reply):
+         if not reply.success:
+            LOGERROR(f'automation cleanup failed: {reply.error}')
+         if not self.isShuttingDown:
+            TheSignalExecution.executeMethod(self.openSetupManager)
+
+      automationDlg = DlgAutomations(self, self, False)
+      TheBridge.dbSetup.cleanup(automationDlg.callbackId, onCleanup)
+
+   #############################################################################
    def setupLedgerViews(self):
       if self.netMode == NETWORKMODE.Offline:
+         return
+      if self.ledgerView is not None:
+         #already set up, this is a new db connection after a dropped one
          return
 
       # Table to display ledger/activity
